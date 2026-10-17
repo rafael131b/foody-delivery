@@ -58,8 +58,8 @@ O Compose usa um segredo JWT local de desenvolvimento por padrão. Configure um 
 - Endpoints protegidos para criar, listar, consultar e atualizar pedidos.
 - Status `RECEBIDO`, `EM_PREPARO`, `SAIU_PARA_ENTREGA`, `ENTREGUE` e `CANCELADO`.
 - Persistência SQLite.
-- Interface responsiva inspirada na identidade operacional da Foody Delivery: azul-marinho, verde de ação, cartões e badges de status.
+- Interface responsiva alinhada à identidade pública da Foody Delivery, com tipografia Sen, paleta vermelha, logo oficial e cartões/badges de status.
 
 ## Referências
 
-A direção visual foi baseada na comunicação pública da [Foody Delivery](https://foodydelivery.com/), sem copiar ativos proprietários.
+A direção visual e o logo foram baseados nos materiais públicos da [Foody Delivery](https://foodydelivery.com/).
