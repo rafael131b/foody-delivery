@@ -7,7 +7,7 @@ const statuses = ['RECEBIDO', 'EM_PREPARO', 'SAIU_PARA_ENTREGA', 'ENTREGUE', 'CA
 const statusLabel = { RECEBIDO: 'Recebido', EM_PREPARO: 'Em preparo', SAIU_PARA_ENTREGA: 'Saiu para entrega', ENTREGUE: 'Entregue', CANCELADO: 'Cancelado' }
 const emptyOrder = { customer: '', address: '', items: '' }
 
-function Logo() { return <div className="logo"><span className="logo-mark">✦</span><span>foody<span className="logo-accent">.</span></span></div> }
+function Logo() { return <div className="logo"><img src="https://foodydelivery.com/wp-content/uploads/2021/02/Logo-Foody-retangular-300x100.png" alt="Foody Delivery" /></div> }
 function StatusBadge({ status }) { return <span className={`badge badge-${status?.toLowerCase()}`}>{statusLabel[status] || status}</span> }
 function Shell({ children, user, onLogout }) { return <><header className="topbar"><Logo /><div className="topbar-right"><span className="user-greeting">Olá, {user?.name || 'cliente'}</span><button className="button button-ghost" onClick={onLogout}>Sair</button></div></header>{children}<footer>Foody Delivery <span>•</span> rastreando cada pedido com cuidado</footer></> }
 
