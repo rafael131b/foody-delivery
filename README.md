@@ -1,6 +1,7 @@
 # Foody Delivery — Mini Rastreador de Pedidos
 
 Aplicação simplificada para autenticação e acompanhamento de pedidos de delivery.
+Foody Delivery order-tracking application.
 
 ## Estrutura
 
