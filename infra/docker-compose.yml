@@ -3,14 +3,14 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: \${BACKEND_IMAGE:-foody-backend:local}
+    image: ${BACKEND_IMAGE:-foody-backend:local}
     restart: unless-stopped
     environment:
-      DB_PATH: \${DB_PATH:-/data/foody.db}
-      JWT_SECRET: \${JWT_SECRET:-foody-local-development-secret-change-before-production}
-      JWT_EXPIRATION_MS: \${JWT_EXPIRATION_MS:-86400000}
+      DB_PATH: ${DB_PATH:-/data/foody.db}
+      JWT_SECRET: ${JWT_SECRET:-foody-local-development-secret-change-before-production}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
     ports:
-      - "\${BACKEND_PORT:-8080}:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     volumes:
       - foody-sqlite:/data
     networks:
@@ -22,12 +22,12 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-    image: \${FRONTEND_IMAGE:-foody-frontend:local}
+    image: ${FRONTEND_IMAGE:-foody-frontend:local}
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "\${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3000}:80"
     networks:
       - foody
 
@@ -35,14 +35,14 @@ services:
     build:
       context: ./sqlite-viewer
       dockerfile: Dockerfile
-    image: \${SQLITE_VIEWER_IMAGE:-foody-sqlite-viewer:local}
+    image: ${SQLITE_VIEWER_IMAGE:-foody-sqlite-viewer:local}
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      DB_PATH: \${DB_PATH:-/data/foody.db}
+      DB_PATH: ${DB_PATH:-/data/foody.db}
     ports:
-      - "127.0.0.1:\${SQLITE_VIEWER_PORT:-8081}:8080"
+      - "127.0.0.1:${SQLITE_VIEWER_PORT:-8081}:8080"
     volumes:
       - foody-sqlite:/data:ro
     read_only: true
