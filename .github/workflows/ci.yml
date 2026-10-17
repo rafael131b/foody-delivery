@@ -80,6 +80,19 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start the Docker Compose stack
         run: docker compose -p foody-e2e -f infra/docker-compose.yml up --build -d
+      - name: Wait for the API to become ready
+        run: |
+          for attempt in $(seq 1 60); do
+            status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/orders || true)
+            if [ "$status" = "401" ]; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -p foody-e2e -f infra/docker-compose.yml logs backend
+          echo "API did not become ready in time"
+          exit 1
       - name: Run end-to-end tests
         working-directory: frontend
         run: npx playwright test --config=playwright.config.js
