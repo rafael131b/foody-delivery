@@ -43,7 +43,11 @@ async function request(path, options = {}) {
 export const api = {
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   register: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  orders: () => request('/orders'),
+  orders: ({ page = 0, size = 10, status } = {}) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) })
+    if (status && status !== 'TODOS') params.set('status', status)
+    return request(`/orders?${params.toString()}`)
+  },
   createOrder: (data) => request('/orders', { method: 'POST', body: JSON.stringify(data) }),
   updateStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 }
