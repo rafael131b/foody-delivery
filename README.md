@@ -66,6 +66,28 @@ Esse comando preserva o volume `foody-sqlite` e os dados. **Não use `down -v` s
 
 O Compose usa um segredo JWT local de desenvolvimento por padrão. Configure um `JWT_SECRET` forte antes de qualquer uso em produção.
 
+## Teste ponta a ponta
+
+O teste de navegador cobre cadastro, criação de pedido, atualização de status, persistência após recarregar e conferência dos registros no visualizador SQLite. No GitHub Actions, ele sobe uma stack Compose isolada e executa o fluxo em Chromium.
+
+Para reproduzir localmente, com Docker Desktop iniciado:
+
+```bash
+docker compose -p foody-e2e -f infra/docker-compose.yml up --build -d
+cd frontend
+npm ci
+npm install --no-save --package-lock=false @playwright/test@1.56.1
+npx playwright install chromium
+npx playwright test --config=playwright.config.js
+```
+
+Depois do teste, volte à raiz do repositório e pare a stack:
+
+```bash
+docker compose -p foody-e2e -f infra/docker-compose.yml down
+```
+
+Use o nome de projeto `foody-e2e` para manter os containers e o volume de teste separados da sua stack de desenvolvimento.
 ## Escopo entregue
 
 - Cadastro e login com JWT e BCrypt.
