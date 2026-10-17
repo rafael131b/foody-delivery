@@ -48,7 +48,21 @@ Com o Docker Desktop aberto, na raiz do projeto execute:
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-A interface ficará em `http://localhost:3000`; a API também fica disponível diretamente em `http://localhost:8080`. No frontend em Docker, as chamadas `/api` são encaminhadas ao backend pela rede interna do Compose. Para parar os serviços, pressione `Ctrl+C`; para remover os containers depois de iniciar em segundo plano, use `docker compose -f infra/docker-compose.yml down`.
+A interface ficará em `http://localhost:3000`; a API também fica disponível diretamente em `http://localhost:8080`. O visualizador local do SQLite ficará em `http://localhost:8081`. No frontend em Docker, as chamadas `/api` são encaminhadas ao backend pela rede interna do Compose.
+
+O visualizador mostra a estrutura das tabelas e até 100 registros por tabela. Ele é somente para consulta: monta o volume do SQLite em modo somente leitura, oculta os valores de `password_hash` e publica a porta apenas no loopback (`127.0.0.1`). Se abrir o visualizador antes de a API criar o banco na primeira inicialização, atualize a página alguns segundos depois. **Não exponha a porta 8081 em uma rede pública ou ambiente de produção.**
+
+O padrão do banco é `DB_PATH=/data/foody.db`. Se alterar `DB_PATH`, mantenha o arquivo dentro de `/data` para que a API e o visualizador continuem acessando o mesmo volume. Para trocar a porta do visualizador, defina `SQLITE_VIEWER_PORT` no ambiente ou no arquivo `infra/.env` (exemplo: `SQLITE_VIEWER_PORT=8082`). O Compose lê as variáveis de `infra/.env` quando o arquivo Compose está em `infra/`.
+
+Para parar os serviços, pressione `Ctrl+C`; para remover os containers depois de iniciar em segundo plano, use:
+
+```bash
+docker compose -f infra/docker-compose.yml down
+```
+
+Esse comando preserva o volume `foody-sqlite` e os dados. **Não use `down -v` se quiser manter o banco**, pois essa opção apaga o volume persistente.
+
+
 
 O Compose usa um segredo JWT local de desenvolvimento por padrão. Configure um `JWT_SECRET` forte antes de qualquer uso em produção.
 
