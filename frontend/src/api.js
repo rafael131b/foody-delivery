@@ -9,7 +9,8 @@ function friendlyMessage(status, path) {
   }
   if (status === 403) return 'Você não tem permissão para realizar esta ação.'
   if (status === 404) return 'Não encontramos o recurso solicitado. Atualize a página e tente novamente.'
-  if (status === 409) return 'Este e-mail já está cadastrado. Tente entrar na sua conta.'
+  if (status === 409 && path === '/auth/register') return 'Este e-mail já está cadastrado. Tente entrar na sua conta.'
+  if (status === 409) return 'Esta etapa não é permitida para o pedido. Atualize a lista e tente novamente.'
   if (status === 429) return 'Muitas tentativas em pouco tempo. Aguarde um instante e tente novamente.'
   if (status >= 500) return 'O serviço está temporariamente indisponível. Tente novamente em instantes.'
   return 'Não foi possível concluir a operação. Tente novamente.'

@@ -9,7 +9,7 @@
 - Marque cada caso como `Pendente`, `Passou` ou `Falhou` durante a execução.
 - Para cada falha, registre ambiente, passos para reproduzir, resposta esperada/obtida e evidência.
 - Os IDs abaixo devem ser usados em issues, commits ou comentários de revisão.
-- A matriz assume que a API expõe rotas equivalentes a `/auth/register`, `/auth/login` e `/orders`; ajuste os caminhos aos contratos reais sem alterar o objetivo dos testes.
+- Rotas implementadas: `/api/auth/register`, `/api/auth/login`, `/api/orders` e `/api/orders/{id}/status`.
 
 ## Critérios de aceite
 
@@ -26,30 +26,30 @@
 
 | ID | Área | Cenário / passos resumidos | Resultado esperado | Prioridade | Status |
 |---|---|---|---|---|---|
-| AUTH-01 | Autenticação | Cadastrar usuário com nome, e-mail e senha válidos | Cadastro criado; senha não aparece em texto puro; resposta não expõe segredo | P0 | Pendente |
-| AUTH-02 | Autenticação | Cadastrar e-mail já existente | `409` ou `400` consistente, sem criar duplicata | P0 | Pendente |
+| AUTH-01 | Autenticação | Cadastrar usuário com nome, e-mail e senha válidos | Cadastro criado; resposta não expõe senha/hash | P0 | Passou |
+| AUTH-02 | Autenticação | Cadastrar e-mail já existente | `409`, sem criar duplicata | P0 | Passou |
 | AUTH-03 | Autenticação | Enviar nome, e-mail ou senha ausentes | `400` com mensagem de validação; nenhum usuário criado | P0 | Pendente |
 | AUTH-04 | Autenticação | Enviar e-mail em formato inválido e senha abaixo do mínimo | `400`; regras documentadas e consistentes | P1 | Pendente |
-| AUTH-05 | Autenticação | Login com credenciais válidas | Token/sessão retornado; usuário consegue acessar rota protegida | P0 | Pendente |
-| AUTH-06 | Autenticação | Login com senha errada ou e-mail inexistente | `401`; resposta não revela qual campo está incorreto | P0 | Pendente |
+| AUTH-05 | Autenticação | Login com credenciais válidas | Token retornado; usuário consegue acessar rota protegida | P0 | Passou |
+| AUTH-06 | Autenticação | Login com senha incorreta | `401`; mensagem não revela qual campo está incorreto | P0 | Passou |
 | AUTH-07 | Autenticação | Usar token ausente, inválido, expirado ou malformado | `401`; nenhum dado protegido retornado | P0 | Pendente |
 | AUTH-08 | Autenticação | Repetir login e usar logout/expiração, se suportado | Sessão anterior deixa de autorizar operações protegidas | P1 | Pendente |
-| AUTHZ-01 | Autorização | Acessar listar, buscar, criar e atualizar pedido sem autenticação | Todas as rotas protegidas retornam `401` | P0 | Pendente |
-| AUTHZ-02 | Autorização | Usuário A consultar/alterar pedido de usuário B, se pedidos forem privados | Acesso negado (`403` ou `404` sem vazamento de existência) | P0 | Pendente |
+| AUTHZ-01 | Autorização | Acessar listar, buscar, criar e atualizar pedido sem autenticação | Todas as rotas protegidas bloqueadas (`403` no Spring Security atual) | P0 | Passou |
+| AUTHZ-02 | Autorização | Usuário A consultar/alterar pedido de usuário B | `404` sem vazar existência | P0 | Passou |
 | AUTHZ-03 | Autorização | Alterar usuário/ID no token ou enviar token de outro usuário | Servidor valida identidade no token; não há impersonação | P0 | Pendente |
-| ORDER-01 | Pedidos | Criar pedido com cliente, itens e endereço válidos | `201`; ID, status inicial `RECEBIDO` e dados persistidos | P0 | Pendente |
+| ORDER-01 | Pedidos | Criar pedido válido com complemento opcional | `201`; ID, status inicial `RECEBIDO`, complemento devolvido na consulta | P0 | Passou |
 | ORDER-02 | Pedidos | Criar pedido com múltiplos itens e quantidades válidas | Todos os itens são mantidos sem perda/duplicação | P0 | Pendente |
-| ORDER-03 | Pedidos | Listar pedidos autenticado | `200`; lista paginada ou completa conforme contrato, sem dados indevidos | P0 | Pendente |
-| ORDER-04 | Pedidos | Buscar pedido existente por ID | `200`; representação corresponde ao pedido salvo | P0 | Pendente |
+| ORDER-03 | Pedidos | Listar pedidos autenticado | `200`; lista contém o pedido da conta autenticada | P0 | Passou |
+| ORDER-04 | Pedidos | Buscar pedido existente por ID | `200`; representação corresponde ao pedido salvo | P0 | Passou |
 | ORDER-05 | Pedidos | Buscar ID inexistente, inválido ou negativo | `404` para ausente ou `400` para formato inválido; sem stack trace | P1 | Pendente |
 | ORDER-06 | Pedidos | Criar pedido sem cliente, itens vazios, endereço ou JSON válido | `400`; mensagens por campo e sem persistência parcial | P0 | Pendente |
 | ORDER-07 | Pedidos | Quantidade zero/negativa, nome de item vazio ou payload excessivo | `400`/`413` conforme regra; servidor permanece estável | P1 | Pendente |
 | ORDER-08 | Pedidos | Reenviar a mesma requisição de criação | Comportamento documentado: duplicação controlada ou idempotência; sem corrupção | P1 | Pendente |
-| STATUS-01 | Status | Atualizar `RECEBIDO` → `EM_PREPARO` | Atualização aceita e retornada | P0 | Pendente |
-| STATUS-02 | Status | Atualizar `EM_PREPARO` → `SAIU_PARA_ENTREGA` | Atualização aceita | P0 | Pendente |
-| STATUS-03 | Status | Atualizar `SAIU_PARA_ENTREGA` → `ENTREGUE` | Atualização aceita | P0 | Pendente |
-| STATUS-04 | Status | Atualizar qualquer status permitido → `CANCELADO`, conforme regra definida | Resultado consistente com regra de negócio | P0 | Pendente |
-| STATUS-05 | Status | Tentar retroceder status ou alterar pedido `ENTREGUE`/`CANCELADO` | `400`/`409`; status permanece inalterado | P0 | Pendente |
+| STATUS-01 | Status | Atualizar `RECEBIDO` → `EM_PREPARO` | Atualização aceita e retornada | P0 | Passou |
+| STATUS-02 | Status | Atualizar `EM_PREPARO` → `SAIU_PARA_ENTREGA` | Atualização aceita | P0 | Passou |
+| STATUS-03 | Status | Atualizar `SAIU_PARA_ENTREGA` → `ENTREGUE` | Atualização aceita | P0 | Passou |
+| STATUS-04 | Status | Cancelar pedido recebido | Resultado consistente com regra de negócio | P0 | Passou |
+| STATUS-05 | Status | Tentar saltar etapas ou alterar pedido `ENTREGUE`/`CANCELADO` | `409`; status permanece inalterado | P0 | Passou |
 | STATUS-06 | Status | Enviar status ausente, desconhecido, com caixa diferente ou payload inválido | `400`; apenas enum oficial é aceito | P1 | Pendente |
 | STATUS-07 | Status | Duas atualizações concorrentes no mesmo pedido | Resultado determinístico; sem status impossível ou perda silenciosa | P1 | Pendente |
 | DATA-01 | Persistência | Criar pedido, reiniciar aplicação e consultar novamente | Pedido permanece disponível | P0 | Pendente |
@@ -72,50 +72,25 @@
 | RWD-04 | Responsividade | Teclado, foco e contraste | Fluxo operável por teclado; foco visível; contraste suficiente | P1 | Pendente |
 | RWD-05 | Responsividade | Desktop e mobile com identidade visual Foody | Cores, espaçamento, tipografia e hierarquia são coerentes, sem sacrificar legibilidade | P1 | Pendente |
 
-## Testes automatizados recomendados
+## Testes automatizados e CI
 
-Quando o código existir, adicionar testes sem modificar a implementação:
+Os testes de integração do backend usam um SQLite em memória (`backend/src/test/resources/application.properties`) e não alteram o banco persistido do Docker. O GitHub Actions executa `./mvnw -B test`, `npm ci && npm run build` e o build do Compose em pull requests e pushes à `main`. Isso é CI; publicação e deploy (CD) ainda não estão configurados.
 
-- `qa/api/`: testes de contrato/integrados contra a API (registro, login, autorização, pedidos e transições).
-- `qa/e2e/`: fluxo UI login → listagem → criação, erro de API e viewport móvel.
-- `qa/fixtures/`: payloads válidos e inválidos, sem segredos reais.
+## Limites conhecidos
 
-Prioridade mínima para o prazo: AUTH-01/05/07, AUTHZ-01, ORDER-01/03/04/06, STATUS-01/03/05, DATA-01, UI-02/03/04/05 e RWD-01/02.
-
-## Comandos de execução
-
-Nenhum comando de build, teste ou execução pôde ser realizado neste workspace: o repositório está vazio e não contém `pom.xml`, `build.gradle`, `package.json`, código-fonte ou scripts.
-
-Comandos esperados quando a implementação estiver disponível (ajustar aos scripts reais):
-
-```powershell
-# Backend
-./mvnw test
-./mvnw spring-boot:run
-
-# Frontend
-npm ci
-npm test -- --run
-npm run build
-npm run dev
-
-# E2E, se configurado
-npx playwright test
-```
-
-## Riscos e pendências
-
-- Contrato exato de endpoints, payloads, autenticação e códigos de erro ainda não foi definido.
-- A regra de autorização (pedidos visíveis para todos os usuários ou somente para o criador) precisa ser confirmada.
-- A política de transição para `CANCELADO` precisa ser explicitada.
-- Não há implementação para validar persistência SQLite, migrações, CORS, tratamento de exceções ou segurança de senha.
-- Não há ambiente de execução, dados de teste, testes automatizados ou pipeline CI configurados.
-- A referência visual do site Foody Delivery deve ser usada como inspiração; validar acessibilidade e legibilidade antes de considerar a identidade visual aprovada.
-- Não adicionar segredos, tokens, banco local ou artefatos de build ao Git. Confirmar histórico de commits antes da entrega.
+- A suíte não cobre ainda concorrência, reinicialização do container com dados, XSS/SQL injection, testes visuais/responsivos automatizados ou fluxo E2E do navegador.
+- O token do frontend é mantido em `localStorage`; para produção, considerar cookie `HttpOnly` e revisar XSS/CSRF.
+- O SQLite mantém dados de pedido em texto claro; não há criptografia em repouso.
+- Ausência de autenticação atualmente resulta em `403` no Spring Security; pedidos de outro usuário retornam `404`.
+- Não há CD/deploy nem análise de dependências/segurança no workflow atual.
 
 ## Registro de execução
 
-| Data/hora | Ambiente | Comando/caso | Resultado | Evidência |
+Cobertura automatizada atual: 10 testes de backend. Não representa aprovação de todos os casos da matriz.
+
+| Data | Ambiente | Comando/caso | Resultado | Evidência |
 |---|---|---|---|---|
-| 17/10/2026 | Workspace local | Inspeção da raiz do repositório | Repositório vazio; nenhum teste executável | Diretórios e arquivos de implementação ausentes |
+| 17/10/2026 | Local | `backend/.mvnw.cmd test` | Passou (10 testes) | Relatórios Maven em `backend/target/surefire-reports`; SQLite de teste em memória |
+| 17/10/2026 | Local | `frontend/npm ci && npm run build` | Passou | Build Vite; `npm audit` reportou 0 vulnerabilidades |
+| 17/10/2026 | Local | `docker compose -f infra/docker-compose.yml build` | Passou | Imagens do backend e frontend construídas sem reiniciar containers nem alterar o volume |
 

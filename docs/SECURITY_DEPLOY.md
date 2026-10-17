@@ -1,28 +1,29 @@
 # Segurança e deploy
 
-Este documento descreve a configuração mínima recomendada para o Mini Rastreador de Pedidos. A solução foi dimensionada para o desafio técnico e não substitui uma revisão de segurança para produção.
+Este documento separa o que existe hoje das recomendações para produção. A solução foi dimensionada para o desafio técnico e não substitui uma revisão de segurança.
 
 ## Variáveis de ambiente
 
 Copie `infra/.env.example` para um arquivo de ambiente local ou para o mecanismo de secrets do provedor. Nunca versione o arquivo com valores reais.
 
-Variáveis esperadas:
+Variáveis lidas pelo Compose atual:
 
 - `JWT_SECRET`: segredo aleatório, longo e exclusivo por ambiente. Não use o valor de exemplo.
-- `JWT_EXPIRATION_MINUTES`: validade curta do token, por exemplo `60`.
-- `CORS_ALLOWED_ORIGINS`: origens explícitas do frontend, separadas por vírgula. Não use `*` quando houver autenticação.
-- `SQLITE_DB_PATH`: caminho do arquivo SQLite persistente, como `/data/foody.db`.
+- `JWT_EXPIRATION_MS`: validade do token em milissegundos (padrão local: 24 horas).
+- `DB_PATH`: caminho do arquivo SQLite; no container, `/data/foody.db`.
 - `BACKEND_IMAGE` e `FRONTEND_IMAGE`: imagens publicadas no deploy.
 - `BACKEND_PORT` e `FRONTEND_PORT`: portas expostas pelo compose.
+
+O Compose não configura `CORS_ALLOWED_ORIGINS`: o frontend usa `/api` na mesma origem, encaminhado pelo Nginx. Para executar frontend e backend em origens distintas, ainda é necessário configurar CORS.
 
 Em produção, injete segredos por Secret Manager, variáveis protegidas do CI/CD ou secrets do ambiente de hospedagem. Não coloque JWT, senhas, tokens ou arquivos `.db` no Git.
 
 ## Práticas de segurança
 
-- Armazene senhas somente com hash adaptativo seguro (preferencialmente BCrypt/Argon2); nunca salve senha em texto puro nem registre senha em logs.
+- Implementado: senhas são transformadas com BCrypt e verificadas por comparação de hash; a senha original não é armazenada nem devolvida pela API.
 - Valide e normalize e-mail, nome, endereço, itens e status no backend. O frontend não é uma fronteira de segurança.
 - Exija autenticação em todos os endpoints de pedidos e valide a identidade/autoridade do usuário em cada operação.
-- O cliente não deve escolher livremente transições de status; valide as transições permitidas no servidor e rejeite valores desconhecidos.
+- Implementado: transições de status são validadas no backend e rejeitadas com `409` quando inválidas.
 - Use HTTPS no ambiente publicado e configure o proxy para redirecionar HTTP para HTTPS.
 - Não retorne senha, hash, segredo JWT ou stack trace na API.
 - Limite tamanho de payload, paginação/listagem e tentativas de login quando o ambiente deixar de ser apenas demonstrativo.
@@ -30,7 +31,7 @@ Em produção, injete segredos por Secret Manager, variáveis protegidas do CI/C
 
 ## JWT
 
-O login deve emitir um token assinado usando `JWT_SECRET`. A API deve:
+O login emite um token assinado usando `JWT_SECRET`. A API:
 
 1. verificar assinatura, expiração e algoritmo esperado;
 2. extrair apenas o identificador necessário do usuário;
@@ -41,11 +42,12 @@ Para este desafio, o frontend pode enviar `Authorization: Bearer <token>`. Em um
 
 ## CORS
 
-Configure `CORS_ALLOWED_ORIGINS` com a URL exata do frontend, por exemplo `http://localhost:3000` no desenvolvimento. Não habilite credenciais com origem curinga. Em produção, substitua pelo domínio HTTPS real e permita somente métodos e headers necessários (`GET`, `POST`, `PATCH`/`PUT`, `OPTIONS`, `Content-Type`, `Authorization`).
+O Compose serve o frontend e encaminha `/api` pelo Nginx para o backend, mantendo a mesma origem. Não existe configuração explícita de CORS na aplicação; se as origens forem separadas, configure allowlist no backend/proxy antes de publicar.
 
 ## SQLite
 
 - Use um volume persistente montado em `/data`; o arquivo não deve ficar apenas no filesystem efêmero do container.
+- O SQLite atual não é criptografado em repouso. Nome, endereço, complemento, itens e metadados ficam legíveis no arquivo. O volume protege persistência, não confidencialidade; use criptografia de disco/host ou implemente proteção adequada antes de armazenar dados reais.
 - Restrinja permissões do diretório e faça backup do arquivo com a aplicação parada ou usando uma estratégia consistente.
 - SQLite é adequado para o desafio e baixo volume, mas não é a melhor opção para alta concorrência ou múltiplas réplicas.
 - Não compartilhe o mesmo arquivo SQLite entre containers concorrentes.

@@ -4,10 +4,10 @@
 
 - Base URL local: `http://localhost:8080/api`
 - Formato: `application/json; charset=utf-8`
-- IDs: UUID (ou o tipo único escolhido pela implementação)
+- IDs: inteiro (`Long`) gerado pela base
 - Datas: ISO-8601 UTC, por exemplo `2026-10-17T12:30:00Z`
 - Autenticação: `Authorization: Bearer <jwt>` em todas as rotas de pedidos
-- Campos desconhecidos devem ser ignorados ou rejeitados de forma consistente; não devem alterar dados.
+- Resposta de erro da aplicação: objeto JSON `{ "error": "..." }`.
 
 ## Enum de status
 
@@ -43,14 +43,10 @@ Request:
 }
 ```
 
-Resposta `201 Created`:
+Resposta `201 Created` (o cadastro também retorna token):
 
 ```json
-{
-  "id": "user-id",
-  "name": "Maria Silva",
-  "email": "maria@example.com"
-}
+{ "token": "eyJ...", "name": "Maria Silva", "email": "maria@example.com" }
 ```
 
 Não retornar senha ou hash. E-mail duplicado: `409 Conflict`. Dados inválidos: `400 Bad Request`.
@@ -69,16 +65,7 @@ Request:
 Resposta `200 OK`:
 
 ```json
-{
-  "token": "eyJ...",
-  "tokenType": "Bearer",
-  "expiresIn": 7200,
-  "user": {
-    "id": "user-id",
-    "name": "Maria Silva",
-    "email": "maria@example.com"
-  }
-}
+{ "token": "eyJ...", "name": "Maria Silva", "email": "maria@example.com" }
 ```
 
 Credenciais inválidas: `401 Unauthorized`.
@@ -87,41 +74,30 @@ Credenciais inválidas: `401 Unauthorized`.
 
 ### `POST /orders`
 
-Cria um pedido para o usuário autenticado. O servidor define `id`, `status`, `createdAt` e `updatedAt`.
+Cria um pedido para o usuário autenticado. O servidor define `id`, `status` (inicialmente `RECEBIDO`) e `createdAt`.
 
 Request:
 
 ```json
 {
-  "customerName": "Maria Silva",
+  "customer": "Maria Silva",
   "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
-  "items": [
-    {
-      "name": "Hambúrguer clássico",
-      "quantity": 2
-    },
-    {
-      "name": "Batata frita",
-      "quantity": 1
-    }
-  ]
+  "complement": "Bloco B, ap. 32",
+  "items": "2x Hambúrguer clássico\\n1x Batata frita"
 }
 ```
 
-Regras: `items` deve conter pelo menos um item; `quantity` deve ser maior que zero. Resposta `201 Created`:
+`complement` é opcional (máximo de 200 caracteres). `items` é texto livre (até 2000 caracteres), normalmente um item por linha; não há catálogo nem validação de quantidades. Resposta `201 Created`:
 
 ```json
 {
-  "id": "order-id",
-  "customerName": "Maria Silva",
+  "id": 1,
+  "customer": "Maria Silva",
   "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
+  "complement": "Bloco B, ap. 32",
   "status": "RECEBIDO",
-  "items": [
-    { "id": "item-id", "name": "Hambúrguer clássico", "quantity": 2 },
-    { "id": "item-id-2", "name": "Batata frita", "quantity": 1 }
-  ],
-  "createdAt": "2026-10-17T12:30:00Z",
-  "updatedAt": "2026-10-17T12:30:00Z"
+  "items": "2x Hambúrguer clássico\\n1x Batata frita",
+  "createdAt": "2026-10-17T12:30:00Z"
 }
 ```
 
@@ -132,13 +108,13 @@ Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` dec
 ```json
 [
   {
-    "id": "order-id",
-    "customerName": "Maria Silva",
+    "id": 1,
+    "customer": "Maria Silva",
     "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
+    "complement": "Bloco B, ap. 32",
     "status": "EM_PREPARO",
-    "items": [{ "id": "item-id", "name": "Hambúrguer clássico", "quantity": 2 }],
-    "createdAt": "2026-10-17T12:30:00Z",
-    "updatedAt": "2026-10-17T12:35:00Z"
+    "items": "2x Hambúrguer clássico",
+    "createdAt": "2026-10-17T12:30:00Z"
   }
 ]
 ```
@@ -161,20 +137,14 @@ Request:
 }
 ```
 
-Resposta `200 OK`: objeto completo do pedido com `status` e `updatedAt` atualizados. Status desconhecido ou transição inválida: `400` ou `409`, respectivamente. Pedido inexistente: `404`.
+Resposta `200 OK`: pedido atualizado. Transição inválida (incluindo repetição ou mudança a partir de estado final): `409 Conflict`. Status desconhecido ou ausente: `400 Bad Request`. Pedido inexistente ou pertencente a outro usuário: `404`.
 
-## Erros padronizados
+## Formato de erro
 
-Exemplo:
+Exemplo de erro de validação da aplicação:
 
 ```json
-{
-  "timestamp": "2026-10-17T12:40:00Z",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Authentication is required",
-  "path": "/api/orders"
-}
+{ "error": "Dados inválidos" }
 ```
 
 Códigos esperados:
@@ -182,21 +152,24 @@ Códigos esperados:
 | Código | Uso |
 |---|---|
 | `400` | JSON inválido, campo obrigatório ausente ou validação falhou |
-| `401` | Token ausente, inválido ou expirado |
-| `404` | Usuário/pedido não encontrado |
+| `401` | Credenciais de login inválidas |
+| `403` | Token de acesso ausente, inválido ou expirado (comportamento atual do Spring Security) |
+| `404` | Pedido não encontrado ou não pertence ao usuário autenticado |
 | `409` | E-mail duplicado ou transição de status inválida |
 | `500` | Erro inesperado, sem expor stack trace |
 
 ## CORS e segurança do contrato
 
-Configurar a origem permitida por variável de ambiente, com `http://localhost:3000` e `http://localhost:5173` como opções locais documentadas. Permitir `GET`, `POST`, `PATCH`, `OPTIONS`, `Content-Type` e `Authorization`. Não incluir senha, hash ou segredo nas respostas e não colocar JWT em URL, query string ou logs.
+O Compose usa proxy Nginx para `/api` na mesma origem. A aplicação não define allowlist CORS; configure uma antes de servir frontend e backend em origens diferentes. Não incluir senha, hash ou segredo nas respostas e não colocar JWT em URL, query string ou logs.
 
 ## Critérios de aceite da API
 
-- Cadastro retorna `201`, login retorna JWT e pedidos sem JWT retornam `401`.
+- Cadastro retorna `201`, login retorna JWT e pedidos sem JWT são bloqueados (`403` atualmente).
 - O pedido criado inicia sempre em `RECEBIDO`.
 - O frontend consegue criar e listar pedidos usando os payloads acima.
 - A consulta por ID retorna o objeto completo ou `404`.
+- IDs são `Long`; pedidos são isolados por usuário autenticado.
+- Itens são texto livre e o complemento é opcional.
 - Apenas as cinco strings do enum são aceitas.
 - Transições válidas funcionam; saltos, reversões e alteração de estados finais falham com `409`.
 - Validações de nome, e-mail, senha, endereço e itens retornam `400` com mensagem útil.
