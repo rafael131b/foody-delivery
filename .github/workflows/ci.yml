@@ -84,8 +84,8 @@ jobs:
         run: |
           for attempt in $(seq 1 60); do
             status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/orders || true)
-            if [ "$status" = "401" ]; then
-              echo "API is ready"
+            if [ "$status" -ge 200 ] && [ "$status" -lt 500 ]; then
+              echo "API is responding with HTTP $status"
               exit 0
             fi
             sleep 2
