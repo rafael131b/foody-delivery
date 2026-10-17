@@ -1,7 +1,13 @@
 package com.foodydelivery.tracker.order;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +31,24 @@ public class OrderService {
         return OrderDtos.Response.of(repo.save(order));
     }
 
-    public List<OrderDtos.Response> list(String email) {
-        return repo.findAllByOwnerEmailOrderByCreatedAtDesc(email).stream()
-                .map(OrderDtos.Response::of).toList();
+    public OrderDtos.PageResponse list(String email, int page, int size, OrderStatus status) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")
+                .and(Sort.by(Sort.Direction.DESC, "id")));
+        Page<Order> orders = status == null
+                ? repo.findAllByOwnerEmail(email, pageable)
+                : repo.findAllByOwnerEmailAndStatus(email, status, pageable);
+
+        Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
+        for (OrderStatus orderStatus : OrderStatus.values()) {
+            statusCounts.put(orderStatus, 0L);
+        }
+        for (Object[] count : repo.countStatusesByOwnerEmail(email)) {
+            statusCounts.put((OrderStatus) count[0], (Long) count[1]);
+        }
+
+        return new OrderDtos.PageResponse(orders.getContent().stream().map(OrderDtos.Response::of).toList(),
+                orders.getNumber(), orders.getSize(), orders.getTotalElements(), orders.getTotalPages(),
+                orders.isFirst(), orders.isLast(), statusCounts);
     }
 
     public OrderDtos.Response get(Long id, String email) {

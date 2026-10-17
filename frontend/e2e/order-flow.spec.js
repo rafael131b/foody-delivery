@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
 
+const apiUrl = process.env.E2E_API_URL || 'http://127.0.0.1:8080'
+const viewerUrl = process.env.E2E_VIEWER_URL || 'http://127.0.0.1:8081'
+
 test('registers, manages an order, and persists it in the read-only SQLite viewer', async ({ page, browser }) => {
   const suffix = Date.now()
   const email = 'e2e-' + suffix + '@example.test'
@@ -36,12 +39,46 @@ test('registers, manages an order, and persists it in the read-only SQLite viewe
   await expect(persistedOrder).toBeVisible()
   await expect(persistedOrder).toContainText('Em preparo')
 
+  const token = await page.evaluate(() => localStorage.getItem('foody_token'))
+  for (let index = 0; index < 10; index++) {
+    const response = await page.request.post(`${apiUrl}/api/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        customer: `Pedido de paginação ${index}`,
+        items: '1x Item de teste',
+        deliveryAddress: 'Rua de Teste, 999',
+      },
+    })
+    expect(response.status()).toBe(201)
+  }
+
+  const orderListRequests = []
+  page.on('request', request => {
+    if (request.url().includes('/api/orders?')) orderListRequests.push(request.url())
+  })
+  await page.reload()
+  await expect(page.getByRole('article')).toHaveCount(10)
+  await expect(page.getByText('Página 1 de 2')).toBeVisible()
+  expect(orderListRequests.some(url => url.includes('page=0') && url.includes('size=10'))).toBe(true)
+
+  await page.getByRole('button', { name: /Em preparo/ }).click()
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await expect(page.getByText('1 pedido', { exact: true })).toBeVisible()
+  expect(orderListRequests.some(url => url.includes('status=EM_PREPARO'))).toBe(true)
+
+  await page.getByRole('button', { name: /Todos/ }).click()
+  await page.getByRole('button', { name: 'Próxima' }).click()
+  await expect(page.getByText('Página 2 de 2')).toBeVisible()
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await expect(page.getByRole('article').filter({ hasText: customer })).toBeVisible()
+  expect(orderListRequests.some(url => url.includes('page=1') && url.includes('size=10'))).toBe(true)
+
   const viewer = await browser.newPage()
   await expect.poll(async () => {
-    const response = await viewer.request.get('http://127.0.0.1:8081/health')
+    const response = await viewer.request.get(`${viewerUrl}/health`)
     return response.status()
   }, { timeout: 30_000 }).toBe(200)
-  await viewer.goto('http://127.0.0.1:8081/')
+  await viewer.goto(`${viewerUrl}/`)
   const databasePage = await viewer.locator('body').innerText()
   expect(databasePage).toContain('Estrutura da tabela')
   expect(databasePage).toContain('password_hash')

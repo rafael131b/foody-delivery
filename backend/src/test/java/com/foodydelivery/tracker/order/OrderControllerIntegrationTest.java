@@ -44,7 +44,10 @@ class OrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.complement", is("Bloco B")));
         mvc.perform(get("/api/orders").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id", is((int) id)));
+                .andExpect(jsonPath("$.content[0].id", is((int) id)))
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.totalPages", is(1)))
+                .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(1)));
 
         updateStatus(token, id, "EM_PREPARO").andExpect(status().isOk());
         updateStatus(token, id, "SAIU_PARA_ENTREGA").andExpect(status().isOk());
@@ -72,6 +75,55 @@ class OrderControllerIntegrationTest {
 
         updateStatus(token, id, "CANCELADO").andExpect(status().isOk());
         updateStatus(token, id, "EM_PREPARO").andExpect(status().isConflict());
+    }
+
+    @Test
+    void paginatesAndFiltersOrdersOnTheServerAndKeepsCountsGlobal() throws Exception {
+        String token = registerAndGetToken("pagination");
+        long firstOrderId = createOrder(token);
+        for (int index = 1; index < 11; index++) {
+            createOrder(token);
+        }
+        updateStatus(token, firstOrderId, "CANCELADO").andExpect(status().isOk());
+
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("page", "0").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", is(10)))
+                .andExpect(jsonPath("$.page", is(0)))
+                .andExpect(jsonPath("$.size", is(10)))
+                .andExpect(jsonPath("$.totalElements", is(11)))
+                .andExpect(jsonPath("$.totalPages", is(2)))
+                .andExpect(jsonPath("$.first", is(true)))
+                .andExpect(jsonPath("$.last", is(false)))
+                .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(10)))
+                .andExpect(jsonPath("$.statusCounts.CANCELADO", is(1)));
+
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("page", "1").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", is(1)))
+                .andExpect(jsonPath("$.page", is(1)))
+                .andExpect(jsonPath("$.totalElements", is(11)))
+                .andExpect(jsonPath("$.last", is(true)));
+
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token))
+                        .param("status", "CANCELADO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", is(1)))
+                .andExpect(jsonPath("$.content[0].status", is("CANCELADO")))
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(10)));
+    }
+
+    @Test
+    void rejectsInvalidPaginationParameters() throws Exception {
+        String token = registerAndGetToken("pagination-invalid");
+
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("page", "-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("size", "0"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("size", "101"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
