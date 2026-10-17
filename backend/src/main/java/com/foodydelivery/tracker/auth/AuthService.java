@@ -1,3 +1,46 @@
 package com.foodydelivery.tracker.auth;
-import com.foodydelivery.tracker.user.*; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
-@Service public class AuthService { private final UserRepository users; private final PasswordEncoder encoder; private final JwtService jwt; public AuthService(UserRepository u,PasswordEncoder e,JwtService j){users=u;encoder=e;jwt=j;} @Transactional public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest r){if(users.existsByEmailIgnoreCase(r.email())) throw new IllegalArgumentException("E-mail já cadastrado"); User u=new User();u.setName(r.name().trim());u.setEmail(r.email().trim().toLowerCase());u.setPasswordHash(encoder.encode(r.password()));users.save(u);return new AuthDtos.AuthResponse(jwt.generate(u.getEmail()),u.getName(),u.getEmail());} public AuthDtos.AuthResponse login(AuthDtos.LoginRequest r){User u=users.findByEmailIgnoreCase(r.email()).orElseThrow(()->new IllegalArgumentException("Credenciais inválidas"));if(!encoder.matches(r.password(),u.getPasswordHash())) throw new IllegalArgumentException("Credenciais inválidas");return new AuthDtos.AuthResponse(jwt.generate(u.getEmail()),u.getName(),u.getEmail());} }
+
+import com.foodydelivery.tracker.user.User;
+import com.foodydelivery.tracker.user.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class AuthService {
+    private final UserRepository users;
+    private final PasswordEncoder encoder;
+    private final JwtService jwt;
+
+    public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt) {
+        this.users = users;
+        this.encoder = encoder;
+        this.jwt = jwt;
+    }
+
+    @Transactional
+    public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
+        if (users.existsByEmailIgnoreCase(request.email())) {
+            throw new EmailAlreadyRegisteredException();
+        }
+        User user = new User();
+        user.setName(request.name().trim());
+        user.setEmail(request.email().trim().toLowerCase());
+        user.setPasswordHash(encoder.encode(request.password()));
+        users.save(user);
+        return responseFor(user);
+    }
+
+    public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
+        User user = users.findByEmailIgnoreCase(request.email())
+                .orElseThrow(InvalidCredentialsException::new);
+        if (!encoder.matches(request.password(), user.getPasswordHash())) {
+            throw new InvalidCredentialsException();
+        }
+        return responseFor(user);
+    }
+
+    private AuthDtos.AuthResponse responseFor(User user) {
+        return new AuthDtos.AuthResponse(jwt.generate(user.getEmail()), user.getName(), user.getEmail());
+    }
+}

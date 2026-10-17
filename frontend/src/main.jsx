@@ -4,6 +4,13 @@ import { api } from './api'
 import './foody-brand.css'
 
 const statuses = ['RECEBIDO', 'EM_PREPARO', 'SAIU_PARA_ENTREGA', 'ENTREGUE', 'CANCELADO']
+const allowedNextStatuses = {
+  RECEBIDO: ['EM_PREPARO', 'CANCELADO'],
+  EM_PREPARO: ['SAIU_PARA_ENTREGA', 'CANCELADO'],
+  SAIU_PARA_ENTREGA: ['ENTREGUE'],
+  ENTREGUE: [],
+  CANCELADO: [],
+}
 const statusLabel = {
   RECEBIDO: 'Recebido',
   EM_PREPARO: 'Em preparo',
@@ -11,7 +18,7 @@ const statusLabel = {
   ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',
 }
-const emptyOrder = { customer: '', address: '', items: '' }
+const emptyOrder = { customer: '', address: '', complement: '', items: '' }
 
 function Logo() {
   return <img className="foody-logo" src="/foody-logo.png" alt="Foody Delivery" />
@@ -126,7 +133,7 @@ function OrderForm({ onCreated, onCancel }) {
     setLoading(true)
     try {
       const items = form.items.split('\n').map(item => item.trim()).filter(Boolean).join('\n')
-      await api.createOrder({ customer: form.customer, deliveryAddress: form.address, items })
+      await api.createOrder({ customer: form.customer, deliveryAddress: form.address, complement: form.complement, items })
       setForm(emptyOrder)
       onCreated()
     } catch (err) {
@@ -149,6 +156,9 @@ function OrderForm({ onCreated, onCancel }) {
         </label>
         <label>Endereço de entrega
           <textarea required rows="2" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Rua, número, complemento e bairro" />
+        </label>
+        <label>Complemento <span className="field-hint">opcional</span>
+          <input maxLength="200" value={form.complement} onChange={e => setForm({ ...form, complement: e.target.value })} placeholder="Ex.: apartamento, bloco ou referência" />
         </label>
         <label>Itens do pedido <span className="field-hint">um item por linha</span>
           <textarea required rows="3" value={form.items} onChange={e => setForm({ ...form, items: e.target.value })} placeholder={'1x Smash Foody\n1x Batata crocante'} />
@@ -178,7 +188,7 @@ function OrderCard({ order, onStatusChange }) {
       </div>
       <div className="order-main">
         <div className="order-customer"><span className="detail-label">Cliente</span><h3>{order.customer || order.client}</h3></div>
-        <div className="order-detail"><span className="detail-label">Endereço de entrega</span><span>{order.deliveryAddress || order.address}</span></div>
+        <div className="order-detail"><span className="detail-label">Endereço de entrega</span><span>{order.deliveryAddress || order.address}{order.complement ? ` · ${order.complement}` : ''}</span></div>
         <div className="order-detail"><span className="detail-label">Itens do pedido</span><span>{items || '—'}</span></div>
       </div>
       <div className="order-card-foot">
@@ -186,7 +196,7 @@ function OrderCard({ order, onStatusChange }) {
         {order.status !== 'ENTREGUE' && order.status !== 'CANCELADO' && (
           <label className="status-control">Atualizar etapa
             <select aria-label={`Atualizar status do pedido ${order.id}`} value={order.status} onChange={e => onStatusChange(order.id, e.target.value)}>
-              {statuses.filter(status => status !== 'CANCELADO' || order.status !== 'RECEBIDO').map(status => (
+              {[order.status, ...allowedNextStatuses[order.status]].map(status => (
                 <option key={status} value={status}>{statusLabel[status]}</option>
               ))}
             </select>
