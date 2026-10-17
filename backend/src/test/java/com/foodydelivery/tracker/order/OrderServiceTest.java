@@ -1,0 +1,3 @@
+package com.foodydelivery.tracker.order;
+import static org.junit.jupiter.api.Assertions.*; import static org.mockito.Mockito.*; import org.junit.jupiter.api.Test; import org.mockito.ArgumentCaptor;
+class OrderServiceTest { @Test void createsOrderWithReceivedStatus(){OrderRepository repo=mock(OrderRepository.class); when(repo.save(any())).thenAnswer(i->{Order o=i.getArgument(0);o.setId(1L);return o;}); OrderDtos.Response r=new OrderService(repo).create(new OrderDtos.CreateRequest("Ana","Pizza x1","Rua A"),"a@b.com"); assertEquals(1L,r.id());assertEquals(OrderStatus.RECEBIDO,r.status()); verify(repo).save(any());} }

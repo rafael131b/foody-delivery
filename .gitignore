@@ -1,0 +1,5 @@
+backend/target/
+backend/orders.db
+frontend/node_modules/
+frontend/dist/
+frontend/.env

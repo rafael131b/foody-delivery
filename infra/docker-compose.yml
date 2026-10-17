@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-foody-backend:local}
+    restart: unless-stopped
+    environment:
+      DB_PATH: ${DB_PATH:-/data/foody.db}
+      JWT_SECRET: ${JWT_SECRET:-foody-local-development-secret-change-before-production}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - foody-sqlite:/data
+    networks:
+      - foody
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+    image: ${FRONTEND_IMAGE:-foody-frontend:local}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    networks:
+      - foody
+
+volumes:
+  foody-sqlite:
+
+networks:
+  foody:
