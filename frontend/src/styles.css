@@ -27,11 +27,7 @@ button { cursor: pointer; border: 0; }
   position: relative; width: 126px; height: 42px; display: inline-flex;
   align-items: center; overflow: hidden; color: transparent; font-size: 0;
 }
-.logo::before {
-  content: ""; display: block; width: 126px; height: 42px;
-  background: url('https://foodydelivery.com/wp-content/uploads/2021/02/Logo-Foody-retangular-300x100.png') center / contain no-repeat;
-}
-.logo-mark, .logo > span:last-child { display: none; }
+.logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .topbar-right { display: flex; gap: 22px; align-items: center; }
 .user-greeting { font-size: 14px; color: var(--muted); }
 .button {
