@@ -96,6 +96,7 @@ Request:
   "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
   "complement": "Bloco B, ap. 32",
   "status": "RECEBIDO",
+  "responsibleName": "Maria Silva",
   "allowedNextStatuses": ["EM_PREPARO", "CANCELADO"],
   "items": "2x Hambúrguer clássico\\n1x Batata frita",
   "createdAt": "2026-10-17T12:30:00Z"
@@ -115,6 +116,7 @@ Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` dec
       "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
       "complement": "Bloco B, ap. 32",
       "status": "EM_PREPARO",
+      "responsibleName": "Maria Silva",
       "allowedNextStatuses": ["SAIU_PARA_ENTREGA", "CANCELADO"],
       "items": "2x Hambúrguer clássico",
       "createdAt": "2026-10-17T12:30:00Z"

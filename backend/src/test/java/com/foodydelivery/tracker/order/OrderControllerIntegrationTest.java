@@ -45,6 +45,7 @@ class OrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.allowedNextStatuses[0]", is("EM_PREPARO")))
                 .andExpect(jsonPath("$.allowedNextStatuses[1]", is("CANCELADO")))
                 .andExpect(jsonPath("$.complement", is("Bloco B")))
+                .andExpect(jsonPath("$.responsibleName", is("Test User")))
                 .andReturn();
         long id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
 
@@ -152,6 +153,9 @@ class OrderControllerIntegrationTest {
         mvc.perform(get("/api/orders/{id}", id).header("Authorization", bearer(otherToken)))
                 .andExpect(status().isNotFound());
         updateStatus(otherToken, id, "CANCELADO").andExpect(status().isNotFound());
+        mvc.perform(get("/api/orders").header("Authorization", bearer(otherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements", is(0)));
     }
 
     @Test

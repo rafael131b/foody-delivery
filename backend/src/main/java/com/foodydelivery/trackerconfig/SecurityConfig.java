@@ -62,9 +62,10 @@ public class SecurityConfig {
             String authorization = request.getHeader("Authorization");
             if (authorization != null && authorization.startsWith("Bearer ")) {
                 try {
-                    String email = jwt.email(authorization.substring(7));
-                    users.findByEmailIgnoreCase(email).ifPresent(user -> SecurityContextHolder.getContext()
-                            .setAuthentication(new UsernamePasswordAuthenticationToken(email, null, List.of())));
+                    Long userId = jwt.userId(authorization.substring(7));
+                    users.findById(userId).ifPresent(user -> SecurityContextHolder.getContext()
+                            .setAuthentication(new UsernamePasswordAuthenticationToken(
+                                    user.getId().toString(), null, List.of())));
                 } catch (JwtException | IllegalArgumentException ignored) {
                     SecurityContextHolder.clearContext();
                 }

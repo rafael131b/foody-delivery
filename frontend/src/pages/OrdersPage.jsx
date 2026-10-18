@@ -21,6 +21,9 @@ export default function OrdersPage({ user, onLogout }) {
     setLoading(true)
     try {
       const result = await api.orders({ page: requestedPage, size: pageSize, status: requestedFilter })
+      if (!result || !Array.isArray(result.content) || !result.statusCounts) {
+        throw new Error('Recebemos uma resposta inesperada. Atualize a página e tente novamente.')
+      }
       setOrders(result.content)
       setPageInfo(result)
       setCounts(result.statusCounts)

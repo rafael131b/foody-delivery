@@ -34,6 +34,11 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && path !== '/auth/login' && path !== '/auth/register') {
+      localStorage.removeItem('foody_token')
+      localStorage.removeItem('foody_user')
+      window.dispatchEvent(new Event('foody:unauthorized'))
+    }
     throw new Error(friendlyMessage(response.status, path))
   }
   if (response.status === 204) return null

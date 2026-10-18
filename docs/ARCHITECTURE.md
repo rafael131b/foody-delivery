@@ -50,8 +50,10 @@ Spring Boot REST API
 | `complement` | String | Opcional, até 200 caracteres |
 | `items` | String | Obrigatório, texto livre até 2000 caracteres; normalmente um item por linha |
 | `status` | Enum | Obrigatório; inicia em `RECEBIDO` |
-| `ownerEmail` | String | E-mail do usuário autenticado que criou o pedido; usado para isolamento |
+| `ownerId` | Long / foreign key | Referência ao usuário autenticado que criou o pedido; usado para isolamento |
 | `createdAt` | Instant | Preenchido no servidor |
+
+O nome do responsável vem da relação com `User` e é exposto como `responsibleName`; o e-mail permanece restrito ao cadastro/login. O visualizador do SQLite faz o `JOIN` para mostrar o nome junto ao pedido.
 
 `items` é propositalmente um campo de texto, não uma relação `OrderItem`: este mini rastreador não implementa catálogo, preço ou validação de quantidade.
 
@@ -76,15 +78,15 @@ SAIU_PARA_ENTREGA -> ENTREGUE
 - `POST /api/auth/register` cria o usuário e aplica BCrypt à senha.
 - `POST /api/auth/login` valida e-mail/senha e devolve um JWT; token ausente, malformado ou expirado retorna `401`.
 - Todos os endpoints de pedidos exigem `Authorization: Bearer <token>`.
-- O JWT deve conter ao menos o identificador do usuário, sujeito (`sub`) e expiração curta (por exemplo, 2 horas).
+- O JWT usa o ID imutável do usuário como sujeito (`sub`) e inclui expiração configurável.
 - Não persistir tokens nem senhas em texto puro.
-- Cada usuário autenticado lista, consulta e altera somente os pedidos associados ao próprio `ownerEmail`; pedidos de outra conta são ocultados com `404`. Não há perfis/RBAC.
+- Cada usuário autenticado lista, consulta e altera somente os pedidos associados ao próprio `ownerId`; pedidos de outra conta são ocultados com `404`. Não há perfis/RBAC.
 
 ## 6. SQLite e configuração
 
 - A aplicação usa `jdbc:sqlite:${DB_PATH:orders.db}`; no Compose, `DB_PATH` aponta para `/data/foody.db` dentro do volume nomeado `foody-sqlite`.
-- Hibernate usa `ddl-auto=update` para criar/atualizar tabelas no desafio; não há ferramenta de migrations.
-- Usar `ddl-auto=update` apenas para facilitar a execução do desafio; em produção, substituir por migrations.
+- Flyway aplica migrações versionadas ao iniciar e é a única ferramenta autorizada a alterar o esquema; Hibernate não executa DDL. A compatibilidade do esquema é coberta por testes de migração, pois SQLite reporta tipos de identidade de forma diferente do `Long` do Hibernate.
+- A migração V2 converte `orders.owner_email` em `orders.owner_id`, preservando IDs e campos dos pedidos. Se não conseguir relacionar todos os responsáveis, a migração falha em vez de descartar registros.
 - Habilitar transações nos services de escrita.
 - `createdAt` é devolvido em ISO-8601. A resposta atual não tem `updatedAt`.
 - Senhas são armazenadas como hash BCrypt, não criptografia reversível. JWT é assinado com segredo configurado por `JWT_SECRET`; o perfil `prod` falha ao iniciar com segredo curto ou placeholder conhecido. O Compose usa apenas um segredo demonstrativo no perfil `local`.
@@ -111,5 +113,5 @@ O frontend usa a identidade vermelha da Foody Delivery, logo oficial, tipografia
 
 ## 10. Fora do escopo e pendências
 
-- Adicionar migrações formais e refresh token somente se houver tempo além do escopo do desafio.
+- Refresh token e revogação de sessão ficam fora do escopo do desafio.
 - Confirmar, no teste visual, os tokens finais de cor e tipografia a partir da referência do Foody Delivery.

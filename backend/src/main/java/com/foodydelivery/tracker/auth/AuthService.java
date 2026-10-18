@@ -41,6 +41,6 @@ public class AuthService {
     }
 
     private AuthDtos.AuthResponse responseFor(User user) {
-        return new AuthDtos.AuthResponse(jwt.generate(user.getEmail()), user.getName(), user.getEmail());
+        return new AuthDtos.AuthResponse(jwt.generate(user.getId()), user.getName(), user.getEmail());
     }
 }

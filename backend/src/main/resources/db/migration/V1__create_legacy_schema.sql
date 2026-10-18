@@ -1,0 +1,17 @@
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TIMESTAMP NOT NULL,
+    customer VARCHAR(255) NOT NULL,
+    delivery_address VARCHAR(255) NOT NULL,
+    items VARCHAR(2000) NOT NULL,
+    owner_email VARCHAR(255) NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    complement VARCHAR(255)
+);

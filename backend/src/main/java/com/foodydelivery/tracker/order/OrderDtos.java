@@ -19,10 +19,11 @@ public final class OrderDtos {
     public record StatusRequest(@NotNull OrderStatus status) {}
 
     public record Response(Long id, String customer, String items, String deliveryAddress,
-            String complement, OrderStatus status, List<OrderStatus> allowedNextStatuses, Instant createdAt) {
+            String complement, String responsibleName, OrderStatus status,
+            List<OrderStatus> allowedNextStatuses, Instant createdAt) {
         static Response of(Order order) {
             return new Response(order.getId(), order.getCustomer(), order.getItems(),
-                    order.getDeliveryAddress(), order.getComplement(), order.getStatus(),
+                    order.getDeliveryAddress(), order.getComplement(), order.getOwner().getName(), order.getStatus(),
                     order.getStatus().allowedNextStatuses(), order.getCreatedAt());
         }
     }

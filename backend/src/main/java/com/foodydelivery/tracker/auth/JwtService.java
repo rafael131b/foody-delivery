@@ -43,12 +43,14 @@ public class JwtService {
                 || KNOWN_PLACEHOLDERS.contains(secret);
     }
 
-    public String generate(String email) {
-        return Jwts.builder().subject(email).issuedAt(new Date())
+    public String generate(Long userId) {
+        return Jwts.builder().subject(userId.toString()).issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration)).signWith(key).compact();
     }
 
-    public String email(String token) {
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().getSubject();
+    public Long userId(String token) {
+        String subject = Jwts.parser().verifyWith(key).build().parseSignedClaims(token)
+                .getPayload().getSubject();
+        return Long.valueOf(subject);
     }
 }

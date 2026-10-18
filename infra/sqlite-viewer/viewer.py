@@ -17,7 +17,7 @@ TABLES = {
         ("items", "Itens"),
         ("status", "Status"),
         ("created_at", "Criado em"),
-        ("owner_email", "Responsável"),
+        ("responsible_name", "Responsável"),
     )),
     "users": ("Usuários", (
         ("id", "ID"),
@@ -71,10 +71,18 @@ def render_database():
             )
             columns = [name for name, _ in display_columns]
             order_by = "created_at DESC" if table == "orders" else "id ASC"
-            rows = db.execute(
-                f'SELECT {", ".join(chr(34) + name + chr(34) for name in columns)} '
-                f'FROM "{table}" ORDER BY {order_by} LIMIT 100'
-            ).fetchall()
+            if table == "orders":
+                rows = db.execute(
+                    "SELECT orders.id, orders.customer, orders.delivery_address, orders.complement, "
+                    "orders.items, orders.status, orders.created_at, users.name AS responsible_name "
+                    "FROM orders JOIN users ON users.id = orders.owner_id "
+                    "ORDER BY orders.created_at DESC, orders.id DESC LIMIT 100"
+                ).fetchall()
+            else:
+                rows = db.execute(
+                    f'SELECT {", ".join(chr(34) + name + chr(34) for name in columns)} '
+                    f'FROM "{table}" ORDER BY {order_by} LIMIT 100'
+                ).fetchall()
             count = db.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
             headers = "".join(f"<th>{cell(label)}</th>" for _, label in display_columns)
             rendered_rows = []

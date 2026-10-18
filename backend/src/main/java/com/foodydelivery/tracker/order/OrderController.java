@@ -29,7 +29,7 @@ public class OrderController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderDtos.Response create(@Valid @RequestBody OrderDtos.CreateRequest request, Authentication auth) {
-        return service.create(request, auth.getName());
+        return service.create(request, ownerId(auth));
     }
 
     @GetMapping
@@ -41,17 +41,21 @@ public class OrderController {
             throw new ResponseStatusException(BAD_REQUEST,
                     "Página deve ser maior ou igual a zero e tamanho deve estar entre 1 e 100");
         }
-        return service.list(auth.getName(), page, size, status);
+        return service.list(ownerId(auth), page, size, status);
     }
 
     @GetMapping("/{id}")
     public OrderDtos.Response get(@PathVariable Long id, Authentication auth) {
-        return service.get(id, auth.getName());
+        return service.get(id, ownerId(auth));
     }
 
     @PatchMapping("/{id}/status")
     public OrderDtos.Response status(@PathVariable Long id,
             @Valid @RequestBody OrderDtos.StatusRequest request, Authentication auth) {
-        return service.updateStatus(id, request, auth.getName());
+        return service.updateStatus(id, request, ownerId(auth));
+    }
+
+    private Long ownerId(Authentication auth) {
+        return Long.valueOf(auth.getName());
     }
 }

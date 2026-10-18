@@ -1,9 +1,11 @@
 import { statusLabel, StatusBadge } from './Brand'
 
 export default function OrderCard({ order, onStatusChange }) {
-  const items = order.items.split('\n').join(' · ')
-  const date = order.createdAt
-    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(order.createdAt))
+  const items = (order.items || '').split('\n').join(' · ')
+  const allowedNextStatuses = Array.isArray(order.allowedNextStatuses) ? order.allowedNextStatuses : []
+  const parsedDate = order.createdAt ? new Date(order.createdAt) : null
+  const date = parsedDate && !Number.isNaN(parsedDate.getTime())
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(parsedDate)
     : 'Agora mesmo'
 
   return (
@@ -19,10 +21,10 @@ export default function OrderCard({ order, onStatusChange }) {
       </div>
       <div className="order-card-foot">
         <span className="order-date">Criado em {date}</span>
-        {order.allowedNextStatuses.length > 0 && (
+        {allowedNextStatuses.length > 0 && (
           <label className="status-control">Atualizar etapa
             <select aria-label={`Atualizar status do pedido ${order.id}`} value={order.status} onChange={event => onStatusChange(order.id, event.target.value)}>
-              {[order.status, ...order.allowedNextStatuses].map(status => (
+              {[order.status, ...allowedNextStatuses].map(status => (
                 <option key={status} value={status}>{statusLabel[status]}</option>
               ))}
             </select>
