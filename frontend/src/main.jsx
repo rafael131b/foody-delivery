@@ -4,13 +4,6 @@ import { api } from './api'
 import './foody-brand.css'
 
 const statuses = ['RECEBIDO', 'EM_PREPARO', 'SAIU_PARA_ENTREGA', 'ENTREGUE', 'CANCELADO']
-const allowedNextStatuses = {
-  RECEBIDO: ['EM_PREPARO', 'CANCELADO'],
-  EM_PREPARO: ['SAIU_PARA_ENTREGA', 'CANCELADO'],
-  SAIU_PARA_ENTREGA: ['ENTREGUE'],
-  ENTREGUE: [],
-  CANCELADO: [],
-}
 const statusLabel = {
   RECEBIDO: 'Recebido',
   EM_PREPARO: 'Em preparo',
@@ -59,9 +52,8 @@ function Auth({ onAuth }) {
       const result = mode === 'login'
         ? await api.login({ email: form.email, password: form.password })
         : await api.register(form)
-      const token = result.token || result.accessToken
-      if (token) localStorage.setItem('foody_token', token)
-      onAuth(result.user || result)
+      localStorage.setItem('foody_token', result.token)
+      onAuth(result)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -97,14 +89,14 @@ function Auth({ onAuth }) {
           <form className="auth-form" onSubmit={submit}>
             {mode === 'register' && (
               <label>Nome completo
-                <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Como podemos te chamar?" />
+                <input required maxLength="120" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Como podemos te chamar?" />
               </label>
             )}
             <label>E-mail
-              <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="voce@email.com" />
+              <input required maxLength="254" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="voce@email.com" />
             </label>
             <label>Senha
-              <input required minLength="6" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Mínimo de 6 caracteres" />
+              <input required minLength="8" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Mínimo de 8 caracteres" />
             </label>
             <button className="button button-primary button-full" disabled={loading}>
               {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}
@@ -152,16 +144,16 @@ function OrderForm({ onCreated, onCancel }) {
       {error && <div className="alert" role="alert">{error}</div>}
       <form className="order-form" onSubmit={submit}>
         <label>Nome do cliente
-          <input required value={form.customer} onChange={e => setForm({ ...form, customer: e.target.value })} placeholder="Ex.: Ana Souza" />
+          <input required maxLength="120" value={form.customer} onChange={e => setForm({ ...form, customer: e.target.value })} placeholder="Ex.: Ana Souza" />
         </label>
         <label>Endereço de entrega
-          <textarea required rows="2" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Rua, número, complemento e bairro" />
+          <textarea required maxLength="500" rows="2" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Rua, número, complemento e bairro" />
         </label>
         <label>Complemento <span className="field-hint">opcional</span>
           <input maxLength="200" value={form.complement} onChange={e => setForm({ ...form, complement: e.target.value })} placeholder="Ex.: apartamento, bloco ou referência" />
         </label>
         <label>Itens do pedido <span className="field-hint">um item por linha</span>
-          <textarea required rows="3" value={form.items} onChange={e => setForm({ ...form, items: e.target.value })} placeholder={'1x Smash Foody\n1x Batata crocante'} />
+          <textarea required maxLength="2000" rows="3" value={form.items} onChange={e => setForm({ ...form, items: e.target.value })} placeholder={'1x Smash Foody\n1x Batata crocante'} />
         </label>
         <div className="form-actions">
           <button type="button" className="button button-secondary" onClick={onCancel}>Cancelar</button>
@@ -173,9 +165,7 @@ function OrderForm({ onCreated, onCancel }) {
 }
 
 function OrderCard({ order, onStatusChange }) {
-  const items = typeof order.items === 'string'
-    ? order.items.split('\n').join(' · ')
-    : (order.items || []).map(item => item.name || item).join(' · ')
+  const items = order.items.split('\n').join(' · ')
   const date = order.createdAt
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(order.createdAt))
     : 'Agora mesmo'
@@ -187,8 +177,8 @@ function OrderCard({ order, onStatusChange }) {
         <StatusBadge status={order.status} />
       </div>
       <div className="order-main">
-        <div className="order-customer"><span className="detail-label">Cliente</span><h3>{order.customer || order.client}</h3></div>
-        <div className="order-detail"><span className="detail-label">Endereço de entrega</span><span>{order.deliveryAddress || order.address}{order.complement ? ` · ${order.complement}` : ''}</span></div>
+        <div className="order-customer"><span className="detail-label">Cliente</span><h3>{order.customer}</h3></div>
+        <div className="order-detail"><span className="detail-label">Endereço de entrega</span><span>{order.deliveryAddress}{order.complement ? ` · ${order.complement}` : ''}</span></div>
         <div className="order-detail"><span className="detail-label">Itens do pedido</span><span>{items || '—'}</span></div>
       </div>
       <div className="order-card-foot">
@@ -196,7 +186,7 @@ function OrderCard({ order, onStatusChange }) {
         {order.status !== 'ENTREGUE' && order.status !== 'CANCELADO' && (
           <label className="status-control">Atualizar etapa
             <select aria-label={`Atualizar status do pedido ${order.id}`} value={order.status} onChange={e => onStatusChange(order.id, e.target.value)}>
-              {[order.status, ...allowedNextStatuses[order.status]].map(status => (
+              {[order.status, ...order.allowedNextStatuses].map(status => (
                 <option key={status} value={status}>{statusLabel[status]}</option>
               ))}
             </select>
@@ -216,6 +206,7 @@ function Orders({ user, onLogout }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const pageSize = 10
+  const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
 
   const load = async (requestedPage = pageInfo.page, requestedFilter = filter) => {
     setLoading(true)
@@ -267,7 +258,7 @@ function Orders({ user, onLogout }) {
         </section>
 
         <section className="summary-strip" aria-label="Resumo dos pedidos">
-          <div className="summary-item summary-total"><span>Total de pedidos</span><strong>{Object.values(counts).reduce((sum, count) => sum + count, 0)}</strong></div>
+          <div className="summary-item summary-total"><span>Total de pedidos</span><strong>{totalCount}</strong></div>
           <div className="summary-item"><span>Recebidos</span><strong>{counts.RECEBIDO || 0}</strong></div>
           <div className="summary-item"><span>Em preparo</span><strong>{counts.EM_PREPARO || 0}</strong></div>
           <div className="summary-item"><span>Em entrega</span><strong>{counts.SAIU_PARA_ENTREGA || 0}</strong></div>
@@ -280,7 +271,7 @@ function Orders({ user, onLogout }) {
         <section className="orders-section">
           <div className="orders-section-heading"><div><h2>Lista de pedidos</h2><span>{pageInfo.totalElements} {pageInfo.totalElements === 1 ? 'pedido' : 'pedidos'}</span></div></div>
           <div className="filters" role="group" aria-label="Filtrar pedidos">
-            <button className={filter === 'TODOS' ? 'active' : ''} onClick={() => changeFilter('TODOS')}>Todos <span>{Object.values(counts).reduce((sum, count) => sum + count, 0)}</span></button>
+            <button className={filter === 'TODOS' ? 'active' : ''} onClick={() => changeFilter('TODOS')}>Todos <span>{totalCount}</span></button>
             {statuses.map(status => (
               <button key={status} className={filter === status ? 'active' : ''} onClick={() => changeFilter(status)}>
                 {statusLabel[status]} <span>{counts[status] || 0}</span>

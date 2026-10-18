@@ -42,6 +42,8 @@ class OrderControllerIntegrationTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("RECEBIDO")))
+                .andExpect(jsonPath("$.allowedNextStatuses[0]", is("EM_PREPARO")))
+                .andExpect(jsonPath("$.allowedNextStatuses[1]", is("CANCELADO")))
                 .andExpect(jsonPath("$.complement", is("Bloco B")))
                 .andReturn();
         long id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
