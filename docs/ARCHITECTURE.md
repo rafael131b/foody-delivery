@@ -74,7 +74,7 @@ SAIU_PARA_ENTREGA -> ENTREGUE
 ## 5. Autenticação e autorização
 
 - `POST /api/auth/register` cria o usuário e aplica BCrypt à senha.
-- `POST /api/auth/login` valida e-mail/senha e devolve um JWT.
+- `POST /api/auth/login` valida e-mail/senha e devolve um JWT; token ausente, malformado ou expirado retorna `401`.
 - Todos os endpoints de pedidos exigem `Authorization: Bearer <token>`.
 - O JWT deve conter ao menos o identificador do usuário, sujeito (`sub`) e expiração curta (por exemplo, 2 horas).
 - Não persistir tokens nem senhas em texto puro.
@@ -87,7 +87,7 @@ SAIU_PARA_ENTREGA -> ENTREGUE
 - Usar `ddl-auto=update` apenas para facilitar a execução do desafio; em produção, substituir por migrations.
 - Habilitar transações nos services de escrita.
 - `createdAt` é devolvido em ISO-8601. A resposta atual não tem `updatedAt`.
-- Senhas são armazenadas como hash BCrypt, não criptografia reversível. JWT é assinado com segredo configurado por `JWT_SECRET`.
+- Senhas são armazenadas como hash BCrypt, não criptografia reversível. JWT é assinado com segredo configurado por `JWT_SECRET`; o perfil `prod` falha ao iniciar com segredo curto ou placeholder conhecido. O Compose usa apenas um segredo demonstrativo no perfil `local`.
 - Os campos de pedidos (nome, endereço, complemento e itens) ficam em texto claro no arquivo SQLite. O volume Docker não oferece criptografia em repouso; use dados fictícios no desafio e proteção/criptografia de disco para ambiente real.
 
 ## 7. CORS

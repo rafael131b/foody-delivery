@@ -9,6 +9,7 @@ Copie `infra/.env.example` para um arquivo de ambiente local ou para o mecanismo
 Variáveis lidas pelo Compose atual:
 
 - `JWT_SECRET`: segredo aleatório, longo e exclusivo por ambiente. Não use o valor de exemplo.
+- `SPRING_PROFILES_ACTIVE`: `local` por padrão no Compose; use `prod` no ambiente publicado. O perfil de produção recusa segredo ausente/curto e placeholders conhecidos.
 - `JWT_EXPIRATION_MS`: validade do token em milissegundos (padrão local: 24 horas).
 - `DB_PATH`: caminho do arquivo SQLite; no container, `/data/foody.db`.
 - `BACKEND_IMAGE` e `FRONTEND_IMAGE`: imagens publicadas no deploy.
@@ -16,7 +17,7 @@ Variáveis lidas pelo Compose atual:
 
 O Compose não configura `CORS_ALLOWED_ORIGINS`: o frontend usa `/api` na mesma origem, encaminhado pelo Nginx. Para executar frontend e backend em origens distintas, ainda é necessário configurar CORS.
 
-Em produção, injete segredos por Secret Manager, variáveis protegidas do CI/CD ou secrets do ambiente de hospedagem. Não coloque JWT, senhas, tokens ou arquivos `.db` no Git.
+Em produção, configure `SPRING_PROFILES_ACTIVE=prod` e injete um `JWT_SECRET` aleatório, exclusivo, com pelo menos 32 bytes por Secret Manager, variáveis protegidas do CI/CD ou secrets do ambiente de hospedagem. A inicialização falha se o perfil `prod` receber um segredo curto ou um placeholder conhecido. Não coloque JWT, senhas, tokens ou arquivos `.db` no Git.
 
 ## Práticas de segurança
 
@@ -35,7 +36,7 @@ O login emite um token assinado usando `JWT_SECRET`. A API:
 
 1. verificar assinatura, expiração e algoritmo esperado;
 2. extrair apenas o identificador necessário do usuário;
-3. rejeitar token ausente, malformado ou expirado com `401 Unauthorized`;
+3. rejeitar token ausente, malformado ou expirado com `401 Unauthorized` (coberto por testes de integração);
 4. não aceitar segredo ou algoritmo informado pelo cliente.
 
 Para este desafio, o frontend pode enviar `Authorization: Bearer <token>`. Em um produto real, avalie cuidadosamente armazenamento no navegador, rotação/revogação e proteção contra XSS/CSRF.
@@ -55,8 +56,8 @@ O Compose serve o frontend e encaminha `/api` pelo Nginx para o backend, mantend
 
 ## Execução local
 
-1. Copie `infra/.env.example` para `.env` (ou configure as variáveis na IDE).
-2. Gere um `JWT_SECRET` local forte.
+1. Para execução local, o Compose usa o perfil `local` e um segredo demonstrativo; não o reutilize fora da máquina de desenvolvimento.
+2. Para perfil `prod`, configure `SPRING_PROFILES_ACTIVE=prod` e injete um `JWT_SECRET` aleatório e exclusivo.
 3. Inicie a API com o comando documentado pelo agente de backend.
 4. Inicie o frontend com o comando documentado pelo agente de frontend.
 5. Acesse somente as origens permitidas por CORS.

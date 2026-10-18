@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       DB_PATH: ${DB_PATH:-/data/foody.db}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
       JWT_SECRET: ${JWT_SECRET:-foody-local-development-secret-change-before-production}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
     ports:

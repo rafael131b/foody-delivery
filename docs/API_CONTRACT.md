@@ -153,7 +153,8 @@ Códigos esperados:
 |---|---|
 | `400` | JSON inválido, campo obrigatório ausente ou validação falhou |
 | `401` | Credenciais de login inválidas |
-| `403` | Token de acesso ausente, inválido ou expirado (comportamento atual do Spring Security) |
+| `401` | Token de acesso ausente, inválido ou expirado |
+| `403` | Usuário autenticado sem permissão para o recurso, se houver regras de autorização adicionais |
 | `404` | Pedido não encontrado ou não pertence ao usuário autenticado |
 | `409` | E-mail duplicado ou transição de status inválida |
 | `500` | Erro inesperado, sem expor stack trace |
@@ -164,7 +165,7 @@ O Compose usa proxy Nginx para `/api` na mesma origem. A aplicação não define
 
 ## Critérios de aceite da API
 
-- Cadastro retorna `201`, login retorna JWT e pedidos sem JWT são bloqueados (`403` atualmente).
+- Cadastro retorna `201`, login retorna JWT e pedidos sem JWT ou com token inválido/expirado retornam `401`.
 - O pedido criado inicia sempre em `RECEBIDO`.
 - O frontend consegue criar e listar pedidos usando os payloads acima.
 - A consulta por ID retorna o objeto completo ou `404`.

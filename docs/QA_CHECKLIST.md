@@ -28,13 +28,13 @@
 |---|---|---|---|---|---|
 | AUTH-01 | Autenticação | Cadastrar usuário com nome, e-mail e senha válidos | Cadastro criado; resposta não expõe senha/hash | P0 | Passou |
 | AUTH-02 | Autenticação | Cadastrar e-mail já existente | `409`, sem criar duplicata | P0 | Passou |
-| AUTH-03 | Autenticação | Enviar nome, e-mail ou senha ausentes | `400` com mensagem de validação; nenhum usuário criado | P0 | Pendente |
-| AUTH-04 | Autenticação | Enviar e-mail em formato inválido e senha abaixo do mínimo | `400`; regras documentadas e consistentes | P1 | Pendente |
+| AUTH-03 | Autenticação | Enviar nome, e-mail ou senha ausentes | `400` com mensagem de validação; nenhum usuário criado | P0 | Passou |
+| AUTH-04 | Autenticação | Enviar e-mail em formato inválido e senha abaixo do mínimo | `400`; regras documentadas e consistentes | P1 | Passou |
 | AUTH-05 | Autenticação | Login com credenciais válidas | Token retornado; usuário consegue acessar rota protegida | P0 | Passou |
 | AUTH-06 | Autenticação | Login com senha incorreta | `401`; mensagem não revela qual campo está incorreto | P0 | Passou |
-| AUTH-07 | Autenticação | Usar token ausente, inválido, expirado ou malformado | `401`; nenhum dado protegido retornado | P0 | Pendente |
+| AUTH-07 | Autenticação | Usar token ausente, inválido, expirado ou malformado | `401`; nenhum dado protegido retornado | P0 | Passou |
 | AUTH-08 | Autenticação | Repetir login e usar logout/expiração, se suportado | Sessão anterior deixa de autorizar operações protegidas | P1 | Pendente |
-| AUTHZ-01 | Autorização | Acessar listar, buscar, criar e atualizar pedido sem autenticação | Todas as rotas protegidas bloqueadas (`403` no Spring Security atual) | P0 | Passou |
+| AUTHZ-01 | Autorização | Acessar listar, buscar, criar e atualizar pedido sem autenticação | Todas as rotas protegidas bloqueadas com `401 Unauthorized` | P0 | Passou |
 | AUTHZ-02 | Autorização | Usuário A consultar/alterar pedido de usuário B | `404` sem vazar existência | P0 | Passou |
 | AUTHZ-03 | Autorização | Alterar usuário/ID no token ou enviar token de outro usuário | Servidor valida identidade no token; não há impersonação | P0 | Pendente |
 | ORDER-01 | Pedidos | Criar pedido válido com complemento opcional | `201`; ID, status inicial `RECEBIDO`, complemento devolvido na consulta | P0 | Passou |
@@ -74,23 +74,24 @@
 
 ## Testes automatizados e CI
 
-Os testes de integração do backend usam um SQLite em memória (`backend/src/test/resources/application.properties`) e não alteram o banco persistido do Docker. O GitHub Actions executa `./mvnw -B test`, `npm ci && npm run build` e o build do Compose em pull requests e pushes à `main`. Isso é CI; publicação e deploy (CD) ainda não estão configurados.
+Os testes de integração do backend usam um SQLite em memória (`backend/src/test/resources/application.properties`) e não alteram o banco persistido do Docker. O Playwright E2E cobre cadastro, criação/atualização e persistência do pedido, filtro/paginação server-side e consulta ao visualizador SQLite. O GitHub Actions executa testes backend, build frontend, build do Compose e E2E em pull requests e pushes à `main`. Isso é CI; publicação e deploy (CD) ainda não estão configurados.
 
 ## Limites conhecidos
 
-- A suíte não cobre ainda concorrência, reinicialização do container com dados, XSS/SQL injection, testes visuais/responsivos automatizados ou fluxo E2E do navegador.
+- A suíte ainda não cobre concorrência, reinicialização do container com dados, XSS/SQL injection ou testes visuais/responsivos automatizados.
 - O token do frontend é mantido em `localStorage`; para produção, considerar cookie `HttpOnly` e revisar XSS/CSRF.
 - O SQLite mantém dados de pedido em texto claro; não há criptografia em repouso.
-- Ausência de autenticação atualmente resulta em `403` no Spring Security; pedidos de outro usuário retornam `404`.
+- Segredos de desenvolvimento são aceitos somente no perfil local; produção deve definir `SPRING_PROFILES_ACTIVE=prod` e `JWT_SECRET` exclusivo.
 - Não há CD/deploy nem análise de dependências/segurança no workflow atual.
 
 ## Registro de execução
 
-Cobertura automatizada atual: 10 testes de backend. Não representa aprovação de todos os casos da matriz.
+Cobertura automatizada atual: 18 testes de backend. Não representa aprovação de todos os casos da matriz.
 
 | Data | Ambiente | Comando/caso | Resultado | Evidência |
 |---|---|---|---|---|
-| 17/10/2026 | Local | `backend/.mvnw.cmd test` | Passou (10 testes) | Relatórios Maven em `backend/target/surefire-reports`; SQLite de teste em memória |
-| 17/10/2026 | Local | `frontend/npm ci && npm run build` | Passou | Build Vite; `npm audit` reportou 0 vulnerabilidades |
-| 17/10/2026 | Local | `docker compose -f infra/docker-compose.yml build` | Passou | Imagens do backend e frontend construídas sem reiniciar containers nem alterar o volume |
+| 17/10/2026 | Local | `backend/.mvnw.cmd -B test` | Passou (18 testes) | Testes de autenticação, segredo por perfil, paginação e regras de pedidos; SQLite de teste em memória |
+| 17/10/2026 | Local | `frontend/npm ci && npm run build` | Passou | Build Vite |
+| 17/10/2026 | Local | Playwright E2E via Compose isolado | Passou | Cadastro, pedido, transição, paginação/filtro da API e visualizador SQLite |
+| 17/10/2026 | CI | GitHub Actions em PR #7 | Passou | Backend, frontend, build Docker Compose e E2E |
 
