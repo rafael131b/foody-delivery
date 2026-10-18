@@ -7,9 +7,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -23,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 class OrderControllerIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
+    @Value("${app.jwt.secret}") String jwtSecret;
 
     @Test
     void authenticatedOwnerCanCreateOrderWithComplementAndFollowValidTransitions() throws Exception {
@@ -128,14 +135,14 @@ class OrderControllerIntegrationTest {
 
     @Test
     void orderRoutesRequireAuthenticationAndHideAnotherUsersOrders() throws Exception {
-        mvc.perform(get("/api/orders")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"customer\":\"Ana\",\"items\":\"Pizza\",\"deliveryAddress\":\"Rua A\"}"))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/api/orders/1")).andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/orders/1")).andExpect(status().isUnauthorized());
         mvc.perform(patch("/api/orders/1/status").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"CANCELADO\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
         String ownerToken = registerAndGetToken("private-owner");
         String otherToken = registerAndGetToken("other-user");
         long id = createOrder(ownerToken);
@@ -143,6 +150,22 @@ class OrderControllerIntegrationTest {
         mvc.perform(get("/api/orders/{id}", id).header("Authorization", bearer(otherToken)))
                 .andExpect(status().isNotFound());
         updateStatus(otherToken, id, "CANCELADO").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void rejectsMalformedAndExpiredBearerTokensWithUnauthorized() throws Exception {
+        mvc.perform(get("/api/orders").header("Authorization", "Bearer not-a-jwt"))
+                .andExpect(status().isUnauthorized());
+
+        Instant now = Instant.now();
+        String expiredToken = Jwts.builder()
+                .subject("expired@foody.test")
+                .issuedAt(Date.from(now.minusSeconds(120)))
+                .expiration(Date.from(now.minusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        mvc.perform(get("/api/orders").header("Authorization", bearer(expiredToken)))
+                .andExpect(status().isUnauthorized());
     }
 
     private String registerAndGetToken(String prefix) throws Exception {
