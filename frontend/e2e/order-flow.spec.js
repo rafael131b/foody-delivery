@@ -85,7 +85,68 @@ test('registers, manages an order, and persists it in the read-only SQLite viewe
   expect(databasePage).toContain('Hash armazenado')
   expect(databasePage).toContain(customer)
   expect(databasePage).toContain(complement)
+  expect(databasePage).toContain('Usuário E2E')
   expect(databasePage).toContain('EM_PREPARO')
   expect(databasePage).not.toContain(password)
   await viewer.close()
+})
+
+test('keeps orders isolated when registering and logging into different accounts', async ({ page }) => {
+  const suffix = Date.now()
+  const firstEmail = `owner-${suffix}@example.test`
+  const secondEmail = `other-${suffix}@example.test`
+  const firstPassword = `First-${suffix}-password`
+  const secondPassword = `Second-${suffix}-password`
+  const firstOrder = `Pedido da primeira conta ${suffix}`
+  const secondOrder = `Pedido da segunda conta ${suffix}`
+  const pageErrors = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+
+  const register = async (name, email, password) => {
+    await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible()
+    await page.getByRole('button', { name: 'Cadastre-se' }).click()
+    await page.getByLabel('Nome completo').fill(name)
+    await page.getByLabel('E-mail').fill(email)
+    await page.getByLabel('Senha').fill(password)
+    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
+  }
+
+  const login = async (email, password) => {
+    await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible()
+    await page.getByLabel('E-mail').fill(email)
+    await page.getByLabel('Senha').fill(password)
+    await page.getByRole('button', { name: 'Entrar' }).click()
+    await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
+  }
+
+  const createOrder = async customer => {
+    await page.getByRole('button', { name: /Novo pedido/ }).first().click()
+    await page.getByLabel('Nome do cliente').fill(customer)
+    await page.getByLabel('Endereço de entrega').fill('Rua de Teste, 123')
+    await page.getByLabel('Itens do pedido').fill('1x Pedido de teste')
+    await page.getByRole('button', { name: 'Salvar pedido' }).click()
+    await expect(page.getByRole('article').filter({ hasText: customer })).toBeVisible()
+  }
+
+  await page.goto('/')
+  await register('Primeiro Responsável', firstEmail, firstPassword)
+  await createOrder(firstOrder)
+
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await register('Segundo Responsável', secondEmail, secondPassword)
+  await expect(page.getByText('Nenhum pedido por enquanto')).toBeVisible()
+  await expect(page.getByText(firstOrder)).toHaveCount(0)
+  await createOrder(secondOrder)
+
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await login(firstEmail, firstPassword)
+  await expect(page.getByRole('article').filter({ hasText: firstOrder })).toBeVisible()
+  await expect(page.getByText(secondOrder)).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await login(secondEmail, secondPassword)
+  await expect(page.getByRole('article').filter({ hasText: secondOrder })).toBeVisible()
+  await expect(page.getByText(firstOrder)).toHaveCount(0)
+  expect(pageErrors).toEqual([])
 })

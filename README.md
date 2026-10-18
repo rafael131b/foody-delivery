@@ -45,12 +45,18 @@ O frontend usa `http://localhost:8080/api` por padrão. Para alterar, copie `.en
 Com o Docker Desktop aberto, na raiz do projeto execute:
 
 ```bash
-docker compose -f infra/docker-compose.yml up --build
+docker compose -f infra/docker-compose.yml up --build -d
 ```
 
-A interface ficará em `http://localhost:3000`; a API também fica disponível diretamente em `http://localhost:8080`. O visualizador local do SQLite ficará em `http://localhost:8081`. No frontend em Docker, as chamadas `/api` são encaminhadas ao backend pela rede interna do Compose.
+A aplicação não exige arquivo `.env` nem cadastro prévio: crie a conta pela tela de login. Depois de iniciar, abra:
 
-O visualizador mostra a estrutura das tabelas e até 100 registros por tabela. Ele é somente para consulta: monta o volume do SQLite em modo somente leitura, oculta os valores de `password_hash` e publica a porta apenas no loopback (`127.0.0.1`). Se abrir o visualizador antes de a API criar o banco na primeira inicialização, atualize a página alguns segundos depois. **Não exponha a porta 8081 em uma rede pública ou ambiente de produção.**
+- Aplicação: <http://localhost:3000>
+- API: <http://localhost:8080/api>
+- Visualizador SQLite (somente leitura): <http://localhost:8081>
+
+As chamadas `/api` do frontend passam pelo Nginx até o backend na rede interna do Compose. Para encerrar, execute `docker compose -f infra/docker-compose.yml down`; o volume do banco será preservado.
+
+O visualizador mostra a estrutura das tabelas e até 100 registros por tabela. Na listagem de pedidos, o responsável aparece pelo nome, obtido pela relação com `users`; o e-mail é usado apenas para login. O visualizador monta o volume do SQLite em modo somente leitura, oculta os valores de `password_hash` e publica a porta apenas no loopback (`127.0.0.1`). Se abrir antes de a API criar o banco na primeira inicialização, atualize a página alguns segundos depois. **Não exponha a porta 8081 em uma rede pública ou ambiente de produção.**
 
 O padrão do banco é `DB_PATH=/data/foody.db`. Se alterar `DB_PATH`, mantenha o arquivo dentro de `/data` para que a API e o visualizador continuem acessando o mesmo volume. Para trocar a porta do visualizador, defina `SQLITE_VIEWER_PORT` no ambiente ou no arquivo `infra/.env` (exemplo: `SQLITE_VIEWER_PORT=8082`). O Compose lê as variáveis de `infra/.env` quando o arquivo Compose está em `infra/`.
 
@@ -94,6 +100,7 @@ Use o nome de projeto `foody-e2e` para manter os containers e o volume de teste 
 - Endpoints protegidos para criar, listar, consultar e atualizar pedidos.
 - Status `RECEBIDO`, `EM_PREPARO`, `SAIU_PARA_ENTREGA`, `ENTREGUE` e `CANCELADO`.
 - Persistência SQLite.
+- Migrações versionadas com Flyway; dados legados de pedidos são associados ao usuário por ID, preservando os registros existentes.
 - Validação de transições no backend e complemento opcional no endereço do pedido.
 - CI no GitHub Actions: testes do backend, build do frontend e das imagens Docker em PRs e pushes à `main`; CD/deploy não está configurado.
 - Interface responsiva alinhada à identidade pública da Foody Delivery, com tipografia Sen, paleta vermelha, logo oficial e cartões/badges de status.

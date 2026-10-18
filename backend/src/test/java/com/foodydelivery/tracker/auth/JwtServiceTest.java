@@ -1,11 +1,19 @@
 package com.foodydelivery.tracker.auth;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
 class JwtServiceTest {
+    @Test
+    void storesStableUserIdAsTheJwtSubject() {
+        JwtService jwt = new JwtService("test-secret-key-with-at-least-32-characters", 86_400_000, "test");
+
+        assertEquals(42L, jwt.userId(jwt.generate(42L)));
+    }
+
     @Test
     void allowsTheDocumentedDevelopmentSecretInLocalProfile() {
         assertDoesNotThrow(() -> new JwtService(
