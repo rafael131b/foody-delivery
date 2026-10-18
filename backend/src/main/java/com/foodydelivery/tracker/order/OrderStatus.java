@@ -1,7 +1,6 @@
 package com.foodydelivery.tracker.order;
 
-import java.util.EnumSet;
-import java.util.Set;
+import java.util.List;
 
 public enum OrderStatus {
     RECEBIDO,
@@ -14,12 +13,12 @@ public enum OrderStatus {
         return allowedNextStatuses().contains(next);
     }
 
-    private Set<OrderStatus> allowedNextStatuses() {
+    public List<OrderStatus> allowedNextStatuses() {
         return switch (this) {
-            case RECEBIDO -> EnumSet.of(EM_PREPARO, CANCELADO);
-            case EM_PREPARO -> EnumSet.of(SAIU_PARA_ENTREGA, CANCELADO);
-            case SAIU_PARA_ENTREGA -> EnumSet.of(ENTREGUE);
-            case ENTREGUE, CANCELADO -> EnumSet.noneOf(OrderStatus.class);
+            case RECEBIDO -> List.of(EM_PREPARO, CANCELADO);
+            case EM_PREPARO -> List.of(SAIU_PARA_ENTREGA, CANCELADO);
+            case SAIU_PARA_ENTREGA -> List.of(ENTREGUE);
+            case ENTREGUE, CANCELADO -> List.of();
         };
     }
 }

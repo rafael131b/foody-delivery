@@ -49,7 +49,7 @@ Resposta `201 Created` (o cadastro também retorna token):
 { "token": "eyJ...", "name": "Maria Silva", "email": "maria@example.com" }
 ```
 
-Não retornar senha ou hash. E-mail duplicado: `409 Conflict`. Dados inválidos: `400 Bad Request`.
+Não retornar senha ou hash. E-mail duplicado: `409 Conflict`. Dados inválidos: `400 Bad Request`. O nome aceita até 120 caracteres, o e-mail até 254 e a senha precisa ter pelo menos 8 caracteres.
 
 ### `POST /auth/login`
 
@@ -87,7 +87,7 @@ Request:
 }
 ```
 
-`complement` é opcional (máximo de 200 caracteres). `items` é texto livre (até 2000 caracteres), normalmente um item por linha; não há catálogo nem validação de quantidades. Resposta `201 Created`:
+`customer` aceita até 120 caracteres, `deliveryAddress` até 500, `complement` é opcional (até 200) e `items` é texto livre (até 2000), normalmente um item por linha. Não há catálogo nem validação de quantidades. `allowedNextStatuses` é calculado pelo backend e representa as próximas transições válidas para o status atual; o backend continua validando qualquer atualização. Resposta `201 Created`:
 
 ```json
 {
@@ -96,6 +96,7 @@ Request:
   "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
   "complement": "Bloco B, ap. 32",
   "status": "RECEBIDO",
+  "allowedNextStatuses": ["EM_PREPARO", "CANCELADO"],
   "items": "2x Hambúrguer clássico\\n1x Batata frita",
   "createdAt": "2026-10-17T12:30:00Z"
 }
@@ -103,23 +104,33 @@ Request:
 
 ### `GET /orders`
 
-Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` decrescente. Resposta `200 OK`:
+Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` decrescente. Aceita `page` (padrão `0`), `size` (padrão `10`, entre `1` e `100`) e `status` opcional. Resposta `200 OK`:
 
 ```json
-[
-  {
-    "id": 1,
-    "customer": "Maria Silva",
-    "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
-    "complement": "Bloco B, ap. 32",
-    "status": "EM_PREPARO",
-    "items": "2x Hambúrguer clássico",
-    "createdAt": "2026-10-17T12:30:00Z"
-  }
-]
+{
+  "content": [
+    {
+      "id": 1,
+      "customer": "Maria Silva",
+      "deliveryAddress": "Rua das Flores, 100, São Paulo - SP",
+      "complement": "Bloco B, ap. 32",
+      "status": "EM_PREPARO",
+      "allowedNextStatuses": ["SAIU_PARA_ENTREGA", "CANCELADO"],
+      "items": "2x Hambúrguer clássico",
+      "createdAt": "2026-10-17T12:30:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true,
+  "statusCounts": { "RECEBIDO": 0, "EM_PREPARO": 1, "SAIU_PARA_ENTREGA": 0, "ENTREGUE": 0, "CANCELADO": 0 }
+}
 ```
 
-Paginação é opcional para o desafio; se implementada, usar `page`, `size` e `sort` sem alterar o formato básico sem documentação adicional.
+O status desconhecido ou os parâmetros de paginação inválidos retornam `400 Bad Request`. `statusCounts` informa as contagens de todos os status do usuário, independentemente do filtro aplicado à página.
 
 ### `GET /orders/{id}`
 
