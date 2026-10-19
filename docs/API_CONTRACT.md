@@ -3,6 +3,7 @@
 ## Convenções
 
 - Base URL local: `http://localhost:8080/api`
+- Interface interativa Swagger: `http://localhost:8080/swagger-ui/index.html` (documentação OpenAPI em `http://localhost:8080/v3/api-docs`)
 - Formato: `application/json; charset=utf-8`
 - IDs: inteiro (`Long`) gerado pela base
 - Datas: ISO-8601 UTC, por exemplo `2026-10-17T12:30:00Z`

@@ -52,9 +52,12 @@ A aplicação não exige arquivo `.env` nem cadastro prévio: crie a conta pela 
 
 - Aplicação: <http://localhost:3000>
 - API: <http://localhost:8080/api>
+- Swagger UI (explorar e executar endpoints): <http://localhost:8080/swagger-ui/index.html>
 - Visualizador SQLite (somente leitura): <http://localhost:8081>
 
 As chamadas `/api` do frontend passam pelo Nginx até o backend na rede interna do Compose. Para encerrar, execute `docker compose -f infra/docker-compose.yml down`; o volume do banco será preservado.
+
+No Swagger, execute primeiro `POST /api/auth/register` ou `POST /api/auth/login`, copie o campo `token` da resposta e clique em **Authorize**. Cole somente o token (sem escrever `Bearer `); a interface adiciona o prefixo automaticamente. As rotas de pedidos continuam protegidas e cada token só acessa os pedidos do usuário autenticado.
 
 O visualizador mostra a estrutura das tabelas e até 100 registros por tabela. Na listagem de pedidos, o responsável aparece pelo nome, obtido pela relação com `users`; o e-mail é usado apenas para login. O visualizador monta o volume do SQLite em modo somente leitura, oculta os valores de `password_hash` e publica a porta apenas no loopback (`127.0.0.1`). Se abrir antes de a API criar o banco na primeira inicialização, atualize a página alguns segundos depois. **Não exponha a porta 8081 em uma rede pública ou ambiente de produção.**
 
