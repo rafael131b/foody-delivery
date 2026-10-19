@@ -4,37 +4,24 @@ import OrdersPage from './pages/OrdersPage'
 import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
-  const [user, setUser] = useState(() => {
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('foody_user'))
-      return storedUser && typeof storedUser.name === 'string' ? storedUser : null
-    } catch {
-      return null
-    }
-  })
+  const [session, setSession] = useState(null)
 
   useEffect(() => {
-    const handleExpiredSession = () => setUser(null)
+    const handleExpiredSession = () => setSession(null)
     window.addEventListener('foody:unauthorized', handleExpiredSession)
     return () => window.removeEventListener('foody:unauthorized', handleExpiredSession)
   }, [])
 
-  const authenticate = authenticatedUser => {
-    localStorage.setItem('foody_user', JSON.stringify(authenticatedUser))
-    setUser(authenticatedUser)
-  }
-
-  const logout = () => {
-    localStorage.removeItem('foody_token')
-    localStorage.removeItem('foody_user')
-    setUser(null)
-  }
+  const authenticate = (authenticatedSession) => setSession(authenticatedSession)
+  const logout = () => setSession(null)
 
   return (
     <ErrorBoundary>
-      {user
-        ? <OrdersPage user={user} onLogout={logout} />
-        : <Auth onAuth={authenticate} />}
+      {session ? (
+        <OrdersPage user={session} token={session.token} onLogout={logout} />
+      ) : (
+        <Auth onAuth={authenticate} />
+      )}
     </ErrorBoundary>
   )
 }

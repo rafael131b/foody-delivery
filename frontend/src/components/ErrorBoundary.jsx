@@ -19,8 +19,13 @@ export default class ErrorBoundary extends Component {
             <div className="auth-card">
               <p className="brand-kicker">FOODY DELIVERY</p>
               <h1>Não conseguimos exibir esta tela</h1>
-              <p className="auth-intro">Seus pedidos continuam salvos. Tente carregar a aplicação novamente.</p>
-              <button className="button button-primary button-full" onClick={() => window.location.reload()}>
+              <p className="auth-intro">
+                Seus pedidos continuam salvos. Tente carregar a aplicação novamente.
+              </p>
+              <button
+                className="button button-primary button-full"
+                onClick={() => window.location.reload()}
+              >
                 Tentar novamente
               </button>
             </div>

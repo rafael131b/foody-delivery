@@ -1,8 +1,10 @@
 package com.foodydelivery.tracker.order;
 
-import jakarta.validation.Valid;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,51 +17,54 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestController
 @RequestMapping("/api/orders")
 @Tag(name = "Pedidos", description = "Criação, consulta, paginação e atualização de pedidos")
 @SecurityRequirement(name = "bearerAuth")
 public class OrderController {
-    private static final int MAX_PAGE_SIZE = 100;
+  private static final int MAX_PAGE_SIZE = 100;
 
-    private final OrderService service;
+  private final OrderService service;
 
-    public OrderController(OrderService service) {
-        this.service = service;
+  public OrderController(OrderService service) {
+    this.service = service;
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public OrderDtos.Response create(
+      @Valid @RequestBody OrderDtos.CreateRequest request, Authentication auth) {
+    return service.create(request, ownerId(auth));
+  }
+
+  @GetMapping
+  public OrderDtos.PageResponse list(
+      Authentication auth,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(required = false) OrderStatus status) {
+    if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+      throw new ResponseStatusException(
+          BAD_REQUEST, "Página deve ser maior ou igual a zero e tamanho deve estar entre 1 e 100");
     }
+    return service.list(ownerId(auth), page, size, status);
+  }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public OrderDtos.Response create(@Valid @RequestBody OrderDtos.CreateRequest request, Authentication auth) {
-        return service.create(request, ownerId(auth));
-    }
+  @GetMapping("/{id}")
+  public OrderDtos.Response get(@PathVariable Long id, Authentication auth) {
+    return service.get(id, ownerId(auth));
+  }
 
-    @GetMapping
-    public OrderDtos.PageResponse list(Authentication auth,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) OrderStatus status) {
-        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
-            throw new ResponseStatusException(BAD_REQUEST,
-                    "Página deve ser maior ou igual a zero e tamanho deve estar entre 1 e 100");
-        }
-        return service.list(ownerId(auth), page, size, status);
-    }
+  @PatchMapping("/{id}/status")
+  public OrderDtos.Response status(
+      @PathVariable Long id,
+      @Valid @RequestBody OrderDtos.StatusRequest request,
+      Authentication auth) {
+    return service.updateStatus(id, request, ownerId(auth));
+  }
 
-    @GetMapping("/{id}")
-    public OrderDtos.Response get(@PathVariable Long id, Authentication auth) {
-        return service.get(id, ownerId(auth));
-    }
-
-    @PatchMapping("/{id}/status")
-    public OrderDtos.Response status(@PathVariable Long id,
-            @Valid @RequestBody OrderDtos.StatusRequest request, Authentication auth) {
-        return service.updateStatus(id, request, ownerId(auth));
-    }
-
-    private Long ownerId(Authentication auth) {
-        return Long.valueOf(auth.getName());
-    }
+  private Long ownerId(Authentication auth) {
+    return Long.valueOf(auth.getName());
+  }
 }

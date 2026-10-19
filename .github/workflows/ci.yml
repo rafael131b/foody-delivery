@@ -26,7 +26,7 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - name: Run backend tests
         working-directory: backend
-        run: chmod +x mvnw && ./mvnw -B test
+        run: chmod +x mvnw && ./mvnw -B spotless:check test
 
   frontend-build:
     name: Frontend build
@@ -43,6 +43,12 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+      - name: Check frontend formatting
+        working-directory: frontend
+        run: npm run format:check
       - name: Build frontend
         working-directory: frontend
         run: npm run build
