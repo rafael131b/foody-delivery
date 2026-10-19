@@ -3,6 +3,21 @@ import { test, expect } from '@playwright/test'
 const apiUrl = process.env.E2E_API_URL || 'http://127.0.0.1:8080'
 const viewerUrl = process.env.E2E_VIEWER_URL || 'http://127.0.0.1:8081'
 
+test('serves interactive Swagger documentation for the API', async ({ page, request }) => {
+  const openApiResponse = await request.get(`${apiUrl}/v3/api-docs`)
+  expect(openApiResponse.ok()).toBe(true)
+
+  const definition = await openApiResponse.json()
+  expect(definition.info.title).toBe('Foody Delivery API')
+  expect(definition.paths).toHaveProperty('/api/auth/login')
+  expect(definition.paths).toHaveProperty('/api/orders')
+  expect(definition.components.securitySchemes.bearerAuth.scheme).toBe('bearer')
+
+  await page.goto(`${apiUrl}/swagger-ui/index.html`)
+  await expect(page.getByText('Foody Delivery API')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'GET /api/orders', exact: true })).toBeVisible()
+})
+
 test('registers, manages an order, and persists it in the read-only SQLite viewer', async ({ page, browser }) => {
   const suffix = Date.now()
   const email = 'e2e-' + suffix + '@example.test'

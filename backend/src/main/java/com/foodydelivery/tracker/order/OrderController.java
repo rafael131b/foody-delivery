@@ -1,6 +1,8 @@
 package com.foodydelivery.tracker.order;
 
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,8 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestController
 @RequestMapping("/api/orders")
+@Tag(name = "Pedidos", description = "Criação, consulta, paginação e atualização de pedidos")
+@SecurityRequirement(name = "bearerAuth")
 public class OrderController {
     private static final int MAX_PAGE_SIZE = 100;
 
