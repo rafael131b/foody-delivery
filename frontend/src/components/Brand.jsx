@@ -1,17 +1,15 @@
-export const statusLabel = {
-  RECEBIDO: 'Recebido',
-  EM_PREPARO: 'Em preparo',
-  SAIU_PARA_ENTREGA: 'Saiu para entrega',
-  ENTREGUE: 'Entregue',
-  CANCELADO: 'Cancelado',
-}
+import { statusLabel } from '../statusLabels'
 
 export function Logo() {
   return <img className="foody-logo" src="/foody-logo.png" alt="Foody Delivery" />
 }
 
 export function StatusBadge({ status }) {
-  return <span className={`status-badge status-${status?.toLowerCase()}`}>{statusLabel[status] || status}</span>
+  return (
+    <span className={`status-badge status-${status?.toLowerCase()}`}>
+      {statusLabel[status] || status}
+    </span>
+  )
 }
 
 export function Shell({ children, user, onLogout }) {
@@ -22,11 +20,15 @@ export function Shell({ children, user, onLogout }) {
         <span className="workspace-title">Central de pedidos</span>
         <div className="topbar-right">
           <span className="user-greeting">Olá, {user?.name || 'cliente'}</span>
-          <button className="button button-logout" onClick={onLogout}>Sair</button>
+          <button className="button button-logout" onClick={onLogout}>
+            Sair
+          </button>
         </div>
       </header>
       {children}
-      <footer className="app-footer">Foody Delivery <span>•</span> Operação de entregas</footer>
+      <footer className="app-footer">
+        Foody Delivery <span>•</span> Operação de entregas
+      </footer>
     </div>
   )
 }

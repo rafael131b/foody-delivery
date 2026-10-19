@@ -14,25 +14,22 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 class OpenApiIntegrationTest {
-    @Autowired
-    private MockMvc mvc;
+  @Autowired private MockMvc mvc;
 
-    @Test
-    void publishesOpenApiDefinitionAndSwaggerUiWithoutOpeningProtectedApiRoutes() throws Exception {
-        mvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("Foody Delivery API"))
-                .andExpect(jsonPath("$.paths", hasKey("/api/auth/login")))
-                .andExpect(jsonPath("$.paths", hasKey("/api/auth/register")))
-                .andExpect(jsonPath("$.paths", hasKey("/api/orders")))
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
-                .andExpect(jsonPath("$.paths['/api/orders'].get.security[0].bearerAuth").exists())
-                .andExpect(jsonPath("$.paths['/api/auth/login'].post.security").doesNotExist());
+  @Test
+  void publishesOpenApiDefinitionAndSwaggerUiWithoutOpeningProtectedApiRoutes() throws Exception {
+    mvc.perform(get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.info.title").value("Foody Delivery API"))
+        .andExpect(jsonPath("$.paths", hasKey("/api/auth/login")))
+        .andExpect(jsonPath("$.paths", hasKey("/api/auth/register")))
+        .andExpect(jsonPath("$.paths", hasKey("/api/orders")))
+        .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+        .andExpect(jsonPath("$.paths['/api/orders'].get.security[0].bearerAuth").exists())
+        .andExpect(jsonPath("$.paths['/api/auth/login'].post.security").doesNotExist());
 
-        mvc.perform(get("/swagger-ui/index.html"))
-                .andExpect(status().isOk());
+    mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
 
-        mvc.perform(get("/api/orders"))
-                .andExpect(status().isUnauthorized());
-    }
+    mvc.perform(get("/api/orders")).andExpect(status().isUnauthorized());
+  }
 }

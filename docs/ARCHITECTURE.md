@@ -80,6 +80,7 @@ SAIU_PARA_ENTREGA -> ENTREGUE
 - Todos os endpoints de pedidos exigem `Authorization: Bearer <token>`.
 - O JWT usa o ID imutável do usuário como sujeito (`sub`) e inclui expiração configurável.
 - Não persistir tokens nem senhas em texto puro.
+- No frontend, o token fica somente no estado em memória do React, nunca em `localStorage` ou `sessionStorage`; atualizar a página exige novo login. Isso reduz persistência, mas não elimina acesso por um XSS ativo. Em produção, avaliar sessão por cookie `HttpOnly; Secure; SameSite` junto com proteção CSRF e HTTPS.
 - Cada usuário autenticado lista, consulta e altera somente os pedidos associados ao próprio `ownerId`; pedidos de outra conta são ocultados com `404`. Não há perfis/RBAC.
 
 ## 6. SQLite e configuração

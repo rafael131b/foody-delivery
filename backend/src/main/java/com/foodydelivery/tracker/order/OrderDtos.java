@@ -8,26 +8,47 @@ import java.util.List;
 import java.util.Map;
 
 public final class OrderDtos {
-    private OrderDtos() {}
+  private OrderDtos() {}
 
-    public record CreateRequest(
-            @NotBlank @Size(max = 120) String customer,
-            @NotBlank @Size(max = 2000) String items,
-            @NotBlank @Size(max = 500) String deliveryAddress,
-            @Size(max = 200) String complement) {}
+  public record CreateRequest(
+      @NotBlank @Size(max = 120) String customer,
+      @NotBlank @Size(max = 2000) String items,
+      @NotBlank @Size(max = 500) String deliveryAddress,
+      @Size(max = 200) String complement) {}
 
-    public record StatusRequest(@NotNull OrderStatus status) {}
+  public record StatusRequest(@NotNull OrderStatus status) {}
 
-    public record Response(Long id, String customer, String items, String deliveryAddress,
-            String complement, String responsibleName, OrderStatus status,
-            List<OrderStatus> allowedNextStatuses, Instant createdAt) {
-        static Response of(Order order) {
-            return new Response(order.getId(), order.getCustomer(), order.getItems(),
-                    order.getDeliveryAddress(), order.getComplement(), order.getOwner().getName(), order.getStatus(),
-                    order.getStatus().allowedNextStatuses(), order.getCreatedAt());
-        }
+  public record Response(
+      Long id,
+      String customer,
+      String items,
+      String deliveryAddress,
+      String complement,
+      String responsibleName,
+      OrderStatus status,
+      List<OrderStatus> allowedNextStatuses,
+      Instant createdAt) {
+    static Response of(Order order) {
+      return new Response(
+          order.getId(),
+          order.getCustomer(),
+          order.getItems(),
+          order.getDeliveryAddress(),
+          order.getComplement(),
+          order.getOwner().getName(),
+          order.getStatus(),
+          order.getStatus().allowedNextStatuses(),
+          order.getCreatedAt());
     }
+  }
 
-    public record PageResponse(List<Response> content, int page, int size, long totalElements,
-            int totalPages, boolean first, boolean last, Map<OrderStatus, Long> statusCounts) {}
+  public record PageResponse(
+      List<Response> content,
+      int page,
+      int size,
+      long totalElements,
+      int totalPages,
+      boolean first,
+      boolean last,
+      Map<OrderStatus, Long> statusCounts) {}
 }

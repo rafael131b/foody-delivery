@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-O frontend usa `http://localhost:8080/api` por padrão. Para alterar, copie `.env.example` para `.env` e configure `VITE_API_URL`.
+No modo de desenvolvimento, o Vite encaminha `/api` para `http://localhost:8080`; no Docker, o Nginx encaminha o mesmo caminho ao backend. Para usar outro endereço, configure `VITE_API_URL`.
 
 ### Docker
 
@@ -75,9 +75,11 @@ Esse comando preserva o volume `foody-sqlite` e os dados. **Não use `down -v` s
 
 O Compose usa um segredo JWT local de desenvolvimento por padrão. Configure um `JWT_SECRET` forte antes de qualquer uso em produção.
 
+O JWT do navegador fica somente na memória da aplicação React: ele não é salvo no `localStorage` nem no `sessionStorage`, então será necessário entrar novamente após atualizar ou fechar a página. Isso reduz a exposição de um token persistente, mas não protege contra todo XSS enquanto a aplicação está aberta. Para produção, prefira sessão em cookie `HttpOnly`, `Secure` e `SameSite`, com proteção CSRF e HTTPS; o modo Bearer continua disponível para chamadas de API e Swagger neste desafio.
+
 ## Teste ponta a ponta
 
-O teste de navegador cobre cadastro, criação de pedido, atualização de status, persistência após recarregar e conferência dos registros no visualizador SQLite. No GitHub Actions, ele sobe uma stack Compose isolada e executa o fluxo em Chromium.
+O teste de navegador cobre cadastro, criação de pedido, atualização de status, novo login após recarregar (a sessão fica apenas em memória), persistência dos pedidos e conferência dos registros no visualizador SQLite. No GitHub Actions, ele sobe uma stack Compose isolada e executa o fluxo em Chromium.
 
 Para reproduzir localmente, com Docker Desktop iniciado:
 
@@ -105,7 +107,7 @@ Use o nome de projeto `foody-e2e` para manter os containers e o volume de teste 
 - Persistência SQLite.
 - Migrações versionadas com Flyway; dados legados de pedidos são associados ao usuário por ID, preservando os registros existentes.
 - Validação de transições no backend e complemento opcional no endereço do pedido.
-- CI no GitHub Actions: testes do backend, build do frontend e das imagens Docker em PRs e pushes à `main`; CD/deploy não está configurado.
+- CI no GitHub Actions: testes e formatação Java, lint e formatação do frontend, builds do frontend e das imagens Docker em PRs e pushes à `main`; CD/deploy não está configurado.
 - Interface responsiva alinhada à identidade pública da Foody Delivery, com tipografia Sen, paleta vermelha, logo oficial e cartões/badges de status.
 
 ## Referências
