@@ -55,6 +55,7 @@ export default function useOrders(token) {
     setError('')
     setFilter(nextFilter)
     setPageInfo((current) => ({ ...current, page: 0 }))
+    setRefreshVersion((current) => current + 1)
   }
 
   const goToPage = (nextPage) => {

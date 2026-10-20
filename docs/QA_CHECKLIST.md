@@ -66,6 +66,7 @@
 | UI-06 | Integração | Token expira durante uso | Redireciona para login e preserva mensagem útil | P1 | Pendente |
 | UI-07 | Integração | Recarregar página e navegar diretamente para rota protegida | Estado de autenticação e proteção de rota funcionam conforme contrato | P1 | Passou |
 | UI-08 | Integração | Verificar CORS/base URL em ambiente local e produção | Requisições funcionam sem workaround manual inseguro | P0 | Pendente |
+| UI-09 | Integração | Selecionar novamente o filtro de status já ativo | Nova consulta termina, lista reaparece e loading não fica preso | P1 | Passou |
 | RWD-01 | Responsividade | Testar 320×568, 375×812, 768×1024, 1280×720 e 1440×900 | Sem overflow horizontal; conteúdo e ações acessíveis | P0 | Pendente |
 | RWD-02 | Responsividade | Formulário de pedido em viewport móvel | Campos, labels e botão permanecem legíveis e utilizáveis | P0 | Pendente |
 | RWD-03 | Responsividade | Lista/status em viewport móvel | Cards/tabela adaptam sem cortar endereço, item ou status | P0 | Pendente |
@@ -100,3 +101,6 @@ Cobertura automatizada atual: 22 testes de backend. Os resultados não represent
 | 19/10/2026 | Local | Playwright E2E | Não executado | Requer Docker Compose; Docker Engine indisponível nesta máquina |
 | 20/10/2026 | Local | `docker compose -f infra/docker-compose.yml build` | Passou | Três imagens construídas: backend, frontend e visualizador SQLite |
 | 20/10/2026 | Local | Playwright E2E via Compose isolado | Passou (3 testes) | Swagger, fluxo de pedido/persistência e isolamento entre usuários; portas alternativas por conflito local em 8080 |
+| 20/10/2026 | Windows, revisão dos requisitos | `.\mvnw.cmd -B spotless:check test` na pasta backend | Passou (22 testes) | Após normalização LF com Spotless; sem falhas, erros ou testes ignorados |
+| 20/10/2026 | Windows, revisão dos requisitos | `npm run lint`, `npm run format:check`, `npm run build` na pasta frontend | Passou | Política LF via `.gitattributes` e Prettier; build de produção concluído |
+| 20/10/2026 | Compose `foody-quality-check` | Build dos três serviços e `npm run test:e2e` | Passou (3 testes) | Portas 13000/18080/18081; regressão UI-09 incluída; Playwright fixado no lockfile |
