@@ -19,6 +19,8 @@ Aplicação web para cadastro e autenticação de usuários e acompanhamento de 
 
 ## Funcionalidades
 
+O enunciado exige autenticação, API Java/Spring Boot, persistência SQLite ou similar, frontend React e histórico Git. Consulte a [matriz de requisitos](docs/REQUIREMENTS.md) para localizar cada implementação e suas evidências.
+
 - Cadastro e login com e-mail e senha; o cadastro também autentica e devolve um JWT.
 - Senhas armazenadas com hash BCrypt; senha e hash nunca são retornados pela API.
 - Criação de pedidos com cliente, endereço, complemento opcional e itens em texto livre.
@@ -104,6 +106,8 @@ npm run dev
 
 Abra a URL impressa pelo Vite, normalmente `http://localhost:5173`. Mantenha o processo da API ativo. Se mudar a porta da API, ajuste o proxy em `frontend/vite.config.js` para apontar para ela.
 
+No primeiro acesso, clique em **Cadastre-se** e crie sua conta. Não há senha de administrador predefinida. Contas criadas no Docker não são copiadas para o banco local; cada ambiente mantém seus próprios usuários e pedidos.
+
 Para usar frontend e API em origens diferentes, configure uma allowlist CORS no backend ou no proxy. O repositório não fornece uma allowlist pronta; o caminho padrão de desenvolvimento é usar o proxy do Vite.
 
 ### 3. Parar e persistir
@@ -127,6 +131,8 @@ No PowerShell, use o mesmo comando. Na primeira inicialização, aguarde o backe
 | Swagger UI | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | Explorar e chamar endpoints |
 | OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | Definição OpenAPI |
 | Visualizador SQLite | [http://localhost:8081](http://localhost:8081) | Estrutura e até 100 registros por tabela |
+
+Abra a aplicação e crie uma conta em **Cadastre-se**. O comando padrão não exige configurar `.env`. Se a API local estiver rodando sem Docker na porta 8080, encerre-a com `Ctrl+C` antes de iniciar o Compose, ou personalize `BACKEND_PORT` como descrito abaixo.
 
 O Nginx encaminha `/api` ao serviço `backend` pela rede Compose. O visualizador monta o volume SQLite somente leitura, oculta o valor do hash de senha e publica a porta apenas em `127.0.0.1`. Ele pode exibir “Banco ainda não disponível” antes de a API criar o arquivo; aguarde e atualize. Não exponha a porta 8081 publicamente: a página mostra dados pessoais de pedidos.
 
@@ -245,12 +251,14 @@ O servidor define ID, data de criação, responsável e status inicial. Limites:
 
 `GET /api/orders` aceita `page` (inicia em zero, padrão 0), `size` (padrão 10, de 1 a 100) e `status` opcional. Exemplo: `GET /api/orders?page=0&size=10&status=EM_PREPARO`. A resposta inclui `content`, dados da página (`page`, `size`, `totalElements`, `totalPages`, `first`, `last`) e `statusCounts` para todos os status do usuário, mesmo com filtro aplicado.
 
-Status disponíveis:
+Transições disponíveis:
 
-```text
-RECEBIDO -> EM_PREPARO -> SAIU_PARA_ENTREGA -> ENTREGUE
-     └────> CANCELADO       └────> CANCELADO
-```
+| Status atual | Próximo status permitido |
+|---|---|
+| `RECEBIDO` | `EM_PREPARO` ou `CANCELADO` |
+| `EM_PREPARO` | `SAIU_PARA_ENTREGA` ou `CANCELADO` |
+| `SAIU_PARA_ENTREGA` | `ENTREGUE` |
+| `ENTREGUE` ou `CANCELADO` | Nenhum (estado final) |
 
 `ENTREGUE` e `CANCELADO` são finais. Saltos, reversões e repetição de status retornam `409`. Dados inválidos retornam `400`; credenciais inválidas ou token ausente/inválido retornam `401`; pedido inexistente ou de outra conta retorna `404`; e-mail duplicado retorna `409`.
 
@@ -301,15 +309,14 @@ npm run build
 
 ### Playwright E2E
 
-O E2E inicia uma stack Docker Compose isolada `foody-e2e`, por isso requer Docker ativo, Node.js 22 e Chromium. Na raiz:
+Para executar E2E, inicie uma stack Docker Compose de teste chamada `foody-e2e`. É necessário Docker ativo, Node.js 22 e Chromium. O nome separa containers e volume, mas as portas padrão continuam sendo 3000, 8080 e 8081: elas precisam estar livres. Pare a stack normal com `docker compose -f infra/docker-compose.yml down` (preserva seus dados) e encerre a API local antes de executar os comandos abaixo, na raiz:
 
 ```bash
 docker compose -p foody-e2e -f infra/docker-compose.yml up --build -d
 cd frontend
 npm ci
-npm install --no-save --package-lock=false @playwright/test@1.56.1
 npx playwright install chromium
-npx playwright test --config=playwright.config.js
+npm run test:e2e
 ```
 
 Depois, volte à raiz para parar e remover a stack e o banco descartável:
@@ -319,7 +326,9 @@ cd ..
 docker compose -p foody-e2e -f infra/docker-compose.yml down -v
 ```
 
-Os cenários cobrem Swagger, cadastro, criação e atualização do pedido, sessão em memória após recarga, paginação, filtro, isolamento entre contas e visualizador SQLite.
+O Playwright está fixado no `package-lock.json` e é instalado por `npm ci`. Os cenários cobrem Swagger, cadastro, criação e atualização do pedido, sessão em memória após recarga, paginação, filtro (inclusive selecionar novamente a etapa ativa), isolamento entre contas e visualizador SQLite.
+
+A política `.gitattributes` mantém arquivos de texto em LF e scripts Windows em CRLF. Em um checkout antigo, execute `npm run format` no frontend e `./mvnw spotless:apply` no backend para normalizar os arquivos antes dos checks; no PowerShell use `.\mvnw.cmd spotless:apply`.
 
 ### GitHub Actions
 
@@ -336,6 +345,7 @@ Os cenários cobrem Swagger, cadastro, criação e atualização do pedido, sess
 
 ## Documentação complementar
 
+- [Requisitos do desafio e implementação](docs/REQUIREMENTS.md)
 - [Contrato da API](docs/API_CONTRACT.md)
 - [Arquitetura e modelo de dados](docs/ARCHITECTURE.md)
 - [Checklist de QA](docs/QA_CHECKLIST.md)
