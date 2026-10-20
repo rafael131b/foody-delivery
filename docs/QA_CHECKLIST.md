@@ -53,18 +53,18 @@
 | STATUS-06 | Status | Enviar status ausente, desconhecido, com caixa diferente ou payload inválido | `400`; apenas enum oficial é aceito | P1 | Pendente |
 | STATUS-07 | Status | Duas atualizações concorrentes no mesmo pedido | Resultado determinístico; sem status impossível ou perda silenciosa | P1 | Pendente |
 | DATA-01 | Persistência | Criar pedido, reiniciar aplicação e consultar novamente | Pedido permanece disponível | P0 | Pendente |
-| DATA-02 | Persistência | Criar vários usuários/pedidos e consultar lista | Isolamento e integridade entre registros | P0 | Pendente |
+| DATA-02 | Persistência | Criar vários usuários/pedidos e consultar lista | Isolamento e integridade entre registros | P0 | Passou |
 | DATA-03 | Persistência | Falha durante gravação/transação | Nenhum registro parcial inconsistente; erro controlado | P1 | Pendente |
 | API-01 | API | Verificar códigos HTTP, `Content-Type` e formato de erro | Contrato consistente em sucesso e falha | P1 | Pendente |
 | API-02 | API | Enviar campos desconhecidos e valores SQL/HTML/script | Campos ignorados/rejeitados; sem SQL injection/XSS refletido | P0 | Pendente |
 | API-03 | API | Requisição sem `Content-Type`, método não suportado e rota inexistente | `400`/`405`/`404` apropriados | P1 | Pendente |
-| UI-01 | Integração | Abrir app sem sessão | Usuário vê login/cadastro; áreas protegidas não são exibidas como autenticadas | P0 | Pendente |
-| UI-02 | Integração | Fazer login pela UI | Token/sessão armazenado com segurança; usuário chega à lista | P0 | Pendente |
-| UI-03 | Integração | Listar pedidos pela UI | Dados e status exibidos corretamente; loading e lista vazia tratados | P0 | Pendente |
-| UI-04 | Integração | Criar pedido pela UI com campos válidos | Feedback de sucesso; novo pedido aparece com `RECEBIDO` | P0 | Pendente |
+| UI-01 | Integração | Abrir app sem sessão | Usuário vê login/cadastro; áreas protegidas não são exibidas como autenticadas | P0 | Passou |
+| UI-02 | Integração | Fazer login pela UI | Token/sessão armazenado com segurança; usuário chega à lista | P0 | Passou |
+| UI-03 | Integração | Listar pedidos pela UI | Dados e status exibidos corretamente; loading e lista vazia tratados | P0 | Passou |
+| UI-04 | Integração | Criar pedido pela UI com campos válidos | Feedback de sucesso; novo pedido aparece com `RECEBIDO` | P0 | Passou |
 | UI-05 | Integração | Submeter formulário inválido ou API indisponível | Validação inline; erro compreensível; botão não duplica requisições | P0 | Pendente |
 | UI-06 | Integração | Token expira durante uso | Redireciona para login e preserva mensagem útil | P1 | Pendente |
-| UI-07 | Integração | Recarregar página e navegar diretamente para rota protegida | Estado de autenticação e proteção de rota funcionam conforme contrato | P1 | Pendente |
+| UI-07 | Integração | Recarregar página e navegar diretamente para rota protegida | Estado de autenticação e proteção de rota funcionam conforme contrato | P1 | Passou |
 | UI-08 | Integração | Verificar CORS/base URL em ambiente local e produção | Requisições funcionam sem workaround manual inseguro | P0 | Pendente |
 | RWD-01 | Responsividade | Testar 320×568, 375×812, 768×1024, 1280×720 e 1440×900 | Sem overflow horizontal; conteúdo e ações acessíveis | P0 | Pendente |
 | RWD-02 | Responsividade | Formulário de pedido em viewport móvel | Campos, labels e botão permanecem legíveis e utilizáveis | P0 | Pendente |
@@ -79,14 +79,14 @@ Os testes de integração do backend usam um SQLite em memória (`backend/src/te
 ## Limites conhecidos
 
 - A suíte ainda não cobre concorrência, reinicialização do container com dados, XSS/SQL injection ou testes visuais/responsivos automatizados.
-- O token do frontend é mantido em `localStorage`; para produção, considerar cookie `HttpOnly` e revisar XSS/CSRF.
+- O token do frontend é mantido somente em memória React, não em `localStorage` nem `sessionStorage`; para produção, avaliar cookie `HttpOnly` e revisar XSS/CSRF.
 - O SQLite mantém dados de pedido em texto claro; não há criptografia em repouso.
 - Segredos de desenvolvimento são aceitos somente no perfil local; produção deve definir `SPRING_PROFILES_ACTIVE=prod` e `JWT_SECRET` exclusivo.
 - Não há CD/deploy nem análise de dependências/segurança no workflow atual.
 
 ## Registro de execução
 
-Cobertura automatizada atual: 18 testes de backend. Não representa aprovação de todos os casos da matriz.
+Cobertura automatizada atual: 22 testes de backend. Os resultados não representam aprovação de todos os casos da matriz; os itens marcados como pendentes ainda precisam de validação.
 
 | Data | Ambiente | Comando/caso | Resultado | Evidência |
 |---|---|---|---|---|
@@ -94,4 +94,9 @@ Cobertura automatizada atual: 18 testes de backend. Não representa aprovação 
 | 17/10/2026 | Local | `frontend/npm ci && npm run build` | Passou | Build Vite |
 | 17/10/2026 | Local | Playwright E2E via Compose isolado | Passou | Cadastro, pedido, transição, paginação/filtro da API e visualizador SQLite |
 | 17/10/2026 | CI | GitHub Actions em PR #7 | Passou | Backend, frontend, build Docker Compose e E2E |
-
+| 19/10/2026 | Local | `cd backend && .\mvnw.cmd -B spotless:check test` | Passou (22 testes) | Spotless e suíte backend; SQLite em memória/temporário |
+| 19/10/2026 | Local | `cd frontend && npm ci && npm run lint && npm run format:check && npm run build` | Passou | Instalação limpa, lint, Prettier e build Vite |
+| 19/10/2026 | Local | `docker compose -f infra/docker-compose.yml build` | Bloqueado | Docker CLI instalado, mas Docker Engine/Desktop não estava ativo/disponível |
+| 19/10/2026 | Local | Playwright E2E | Não executado | Requer Docker Compose; Docker Engine indisponível nesta máquina |
+| 20/10/2026 | Local | `docker compose -f infra/docker-compose.yml build` | Passou | Três imagens construídas: backend, frontend e visualizador SQLite |
+| 20/10/2026 | Local | Playwright E2E via Compose isolado | Passou (3 testes) | Swagger, fluxo de pedido/persistência e isolamento entre usuários; portas alternativas por conflito local em 8080 |

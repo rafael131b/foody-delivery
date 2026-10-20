@@ -5,3 +5,4 @@ frontend/dist/
 frontend/.env
 frontend/playwright-report/
 frontend/test-results/
+infra/.env
