@@ -105,6 +105,18 @@ test('registers, manages an order, and persists it in the read-only SQLite viewe
   await expect(page.getByText('1 pedido', { exact: true })).toBeVisible()
   expect(orderListRequests.some((url) => url.includes('status=EM_PREPARO'))).toBe(true)
 
+  // Selecting the active filter must reload instead of leaving the loading state stuck.
+  const repeatedFilterResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      response.url().includes('/api/orders?') &&
+      response.url().includes('status=EM_PREPARO'),
+  )
+  await page.getByRole('button', { name: /Em preparo/ }).click()
+  expect((await repeatedFilterResponse).ok()).toBe(true)
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await expect(page.getByText('Carregando pedidos...')).toHaveCount(0)
+
   await page.getByRole('button', { name: /Todos/ }).click()
   await page.getByRole('button', { name: 'Próxima' }).click()
   await expect(page.getByText('Página 2 de 2')).toBeVisible()
