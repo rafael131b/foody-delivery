@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" fill="none" stroke="#071E48" stroke-opacity=".06" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <!-- hamburguer -->
+  <g transform="translate(34 38) rotate(-12) scale(2.1)">
+    <path d="M3 11a9 7 0 0 1 18 0z" />
+    <path d="M2 14h20" />
+    <path d="M3 16.5c1.8 1.4 3-.8 4.8 0s3 1.4 4.8 0 3-.8 4.8 0 2 .8 3 .3" />
+    <path d="M4 19h16a1 1 0 0 0 1-1v-.5H3v.5a1 1 0 0 0 1 1z" />
+  </g>
+  <!-- batata frita -->
+  <g transform="translate(176 22) rotate(9) scale(2.1)">
+    <path d="M6 11h12l-1.5 10h-9z" />
+    <path d="M8 11V6M11 11V3M14 11V4.5M17 11V7" />
+  </g>
+  <!-- fatia de pizza -->
+  <g transform="translate(318 56) rotate(-9) scale(2.1)">
+    <path d="M12 21 3 6a15 15 0 0 1 18 0z" />
+    <path d="M4.2 8a13.5 13.5 0 0 1 15.6 0" />
+    <circle cx="10" cy="10.5" r="1.2" />
+    <circle cx="14" cy="12" r="1.2" />
+    <circle cx="12" cy="15.5" r="1" />
+  </g>
+  <!-- copo -->
+  <g transform="translate(86 176) rotate(13) scale(2.1)">
+    <path d="M7 8h10l-1 13H8z" />
+    <path d="M6 8h12M12 8V3l3-1" />
+    <path d="M8.2 14h7.6" />
+  </g>
+  <!-- sacola -->
+  <g transform="translate(236 186) rotate(-13) scale(2.1)">
+    <path d="M5 8h14l1 13H4z" />
+    <path d="M9 8V7a3 3 0 0 1 6 0v1" />
+  </g>
+  <!-- garfo e faca -->
+  <g transform="translate(350 236) rotate(8) scale(2.1)">
+    <path d="M7 3v7a2 2 0 0 0 4 0V3M9 3v18" />
+    <path d="M17 3c-2 2-2 6 0 8v10" />
+  </g>
+  <!-- rosquinha -->
+  <g transform="translate(26 308) rotate(-6) scale(2.1)">
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M6 8l1.5 1M16.5 6.5l-1 1.6M18 14l-1.6-.6M8 17l1-1.5" />
+  </g>
+  <!-- pino de entrega -->
+  <g transform="translate(160 322) rotate(11) scale(2.1)">
+    <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </g>
+  <!-- taca de sorvete -->
+  <g transform="translate(300 336) rotate(-10) scale(2.1)">
+    <path d="M7 11h10l-3 10h-4z" />
+    <path d="M7 11a5 5 0 0 1 10 0" />
+    <path d="M12 4V2.5" />
+  </g>
+</svg>
+
