@@ -8,6 +8,7 @@ export default function Auth({ onAuth }) {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const submit = async (event) => {
     event.preventDefault()
@@ -119,17 +120,31 @@ export default function Auth({ onAuth }) {
                   placeholder="voce@email.com"
                 />
               </label>
-              <label>
-                Senha
-                <input
-                  required
-                  minLength="8"
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => setForm({ ...form, password: event.target.value })}
-                  placeholder="Mínimo de 8 caracteres"
-                />
-              </label>
+              <div className="password-field">
+                <label>
+                  Senha
+                  <input
+                    required
+                    minLength="8"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    placeholder="Mínimo de 8 caracteres"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  <Icon
+                    key={showPassword ? 'hide' : 'show'}
+                    name={showPassword ? 'eyeOff' : 'eye'}
+                  />
+                </button>
+              </div>
               <button className="button button-primary button-full" disabled={loading}>
                 {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}
               </button>

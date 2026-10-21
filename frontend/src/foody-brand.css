@@ -1556,6 +1556,48 @@ select {
     box-shadow 0.25s ease,
     background-color 0.2s ease;
 }
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 56px;
+}
+.password-field input::-ms-reveal,
+.password-field input::-ms-clear {
+  display: none;
+}
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--foody-muted);
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 18px;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.25s var(--ease);
+}
+.password-toggle:hover {
+  color: var(--foody-ink);
+  background: color-mix(in srgb, var(--foody-coral) 12%, transparent);
+}
+.password-toggle:active {
+  transform: scale(0.9);
+}
+.password-toggle[aria-pressed='true'] {
+  color: var(--foody-red);
+}
+.password-toggle .icon {
+  animation: scale-in 0.3s var(--ease);
+}
 input:hover,
 textarea:hover {
   border-color: var(--field-line);

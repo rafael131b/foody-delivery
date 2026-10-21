@@ -29,7 +29,7 @@ test('registers, manages an order, and persists it across sessions', async ({ pa
   await page.getByRole('button', { name: 'Cadastre-se' }).click()
   await page.getByLabel('Nome completo').fill('Usuário E2E')
   await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
+  await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Criar conta' }).click()
 
   await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
@@ -56,7 +56,7 @@ test('registers, manages an order, and persists it across sessions', async ({ pa
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible()
   await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
+  await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
   await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
   const persistedOrder = page.getByRole('article').filter({ hasText: customer })
@@ -88,7 +88,7 @@ test('registers, manages an order, and persists it across sessions', async ({ pa
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible()
   await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
+  await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
   await expect(page.getByRole('article')).toHaveCount(10)
   await expect(page.getByText('Página 1 de 2')).toBeVisible()
@@ -151,7 +151,7 @@ test('keeps orders isolated when registering and logging into different accounts
     await page.getByRole('button', { name: 'Cadastre-se' }).click()
     await page.getByLabel('Nome completo').fill(name)
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(password)
+    await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Criar conta' }).click()
     await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
   }
@@ -159,7 +159,7 @@ test('keeps orders isolated when registering and logging into different accounts
   const login = async (email, password) => {
     await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible()
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(password)
+    await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
   }
@@ -208,7 +208,7 @@ test('searches orders by customer and ID together with status filters', async ({
   await page.getByRole('button', { name: 'Cadastre-se' }).click()
   await page.getByLabel('Nome completo').fill('Responsável pela busca')
   await page.getByLabel('E-mail').fill(email)
-  await page.getByLabel('Senha').fill(password)
+  await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Criar conta' }).click()
   await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
 
