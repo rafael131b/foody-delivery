@@ -53,7 +53,7 @@ Spring Boot REST API
 | `ownerId` | Long / foreign key | Referência ao usuário autenticado que criou o pedido; usado para isolamento |
 | `createdAt` | Instant | Preenchido no servidor |
 
-O nome do responsável vem da relação com `User` e é exposto como `responsibleName`; o e-mail permanece restrito ao cadastro/login. O visualizador do SQLite faz o `JOIN` para mostrar o nome junto ao pedido.
+O nome do responsável vem da relação com `User` e é exposto como `responsibleName`; o e-mail permanece restrito ao cadastro/login. Para ver o nome junto ao pedido ao inspecionar o banco, faça o `JOIN` entre as tabelas em qualquer cliente SQLite.
 
 `items` é propositalmente um campo de texto, não uma relação `OrderItem`: este mini rastreador não implementa catálogo, preço ou validação de quantidade.
 
@@ -85,17 +85,17 @@ SAIU_PARA_ENTREGA -> ENTREGUE
 
 ## 6. SQLite e configuração
 
-- A aplicação usa `jdbc:sqlite:${DB_PATH:orders.db}`; no Compose, `DB_PATH` aponta para `/data/foody.db` dentro do volume nomeado `foody-sqlite`.
+- A aplicação usa `jdbc:sqlite:${DB_PATH:orders.db}`; por padrão, o arquivo SQLite local é `backend/orders.db` ao executar na pasta `backend`. `DB_PATH` permite escolher outro caminho.
 - Flyway aplica migrações versionadas ao iniciar e é a única ferramenta autorizada a alterar o esquema; Hibernate não executa DDL. A compatibilidade do esquema é coberta por testes de migração, pois SQLite reporta tipos de identidade de forma diferente do `Long` do Hibernate.
 - A migração V2 converte `orders.owner_email` em `orders.owner_id`, preservando IDs e campos dos pedidos. Se não conseguir relacionar todos os responsáveis, a migração falha em vez de descartar registros.
 - Habilitar transações nos services de escrita.
 - `createdAt` é devolvido em ISO-8601. A resposta atual não tem `updatedAt`.
-- Senhas são armazenadas como hash BCrypt, não criptografia reversível. JWT é assinado com segredo configurado por `JWT_SECRET`; o perfil `prod` falha ao iniciar com segredo curto ou placeholder conhecido. O Compose usa apenas um segredo demonstrativo no perfil `local`.
-- Os campos de pedidos (nome, endereço, complemento e itens) ficam em texto claro no arquivo SQLite. O volume Docker não oferece criptografia em repouso; use dados fictícios no desafio e proteção/criptografia de disco para ambiente real.
+- Senhas são armazenadas como hash BCrypt, não criptografia reversível. JWT é assinado com segredo configurado por `JWT_SECRET`; o perfil `prod` falha ao iniciar com segredo curto ou placeholder conhecido. O segredo padrão é apenas para desenvolvimento e deve ser substituído em produção.
+- Os campos de pedidos (nome, endereço, complemento e itens) ficam em texto claro no arquivo SQLite. O arquivo SQLite local não oferece criptografia em repouso; use dados fictícios no desafio e proteção/criptografia de disco para ambiente real.
 
 ## 7. CORS
 
-No Compose, o frontend usa o Nginx como proxy `/api`, portanto browser e API compartilham a origem. Não há configuração explícita de CORS na aplicação; se frontend e backend forem publicados em origens distintas, é necessário implementar uma allowlist antes.
+No desenvolvimento, o proxy do Vite encaminha `/api` para `http://localhost:8080`, mantendo as chamadas na origem do frontend. No deploy, um proxy reverso pode encaminhar `/api` para a API e servir `frontend/dist`. Não há configuração explícita de CORS na aplicação; se frontend e backend forem publicados em origens distintas, é necessário implementar uma allowlist antes.
 
 ## 8. Identidade visual do Foody Delivery
 
@@ -109,7 +109,7 @@ O frontend usa a identidade vermelha da Foody Delivery, logo oficial, tipografia
 - Status começa em `RECEBIDO` e respeita somente as transições definidas.
 - API rejeita requisições sem token com `401` e entradas inválidas com `400`.
 - Frontend consegue listar pedidos e criar pedido consumindo exclusivamente a API REST.
-- O frontend servido pelo Compose encaminha `/api` ao backend; desenvolvimento separado exige CORS configurado conforme a origem usada.
+- O proxy do Vite encaminha `/api` ao backend no desenvolvimento; publicação em origens distintas exige CORS configurado conforme a origem usada.
 - Segredos e banco local não são commitados; o histórico Git contém commits pequenos e descritivos.
 
 ## 10. Fora do escopo e pendências

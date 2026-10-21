@@ -1,6 +1,6 @@
 # Foody Delivery — Mini rastreador de pedidos
 
-Aplicação web para cadastro e autenticação de usuários e acompanhamento de pedidos de delivery. Cada pedido pertence ao usuário que o criou, e o andamento é controlado por etapas validadas pela API. O projeto combina API REST Java/Spring Boot, interface React e banco SQLite. Pode ser executado localmente sem Docker ou como uma stack com Docker Compose.
+Aplicação web para cadastro e autenticação de usuários e acompanhamento de pedidos de delivery. Cada pedido pertence ao usuário que o criou, e o andamento é controlado por etapas validadas pela API. O projeto combina API REST Java/Spring Boot, interface React e banco SQLite. A execução local usa o Maven Wrapper para a API e o Vite para o frontend.
 
 ## Índice
 
@@ -8,8 +8,7 @@ Aplicação web para cadastro e autenticação de usuários e acompanhamento de 
 - [Tecnologias](#tecnologias)
 - [Estrutura](#estrutura)
 - [Pré-requisitos](#pré-requisitos)
-- [Executar sem Docker](#executar-sem-docker)
-- [Executar com Docker Compose](#executar-com-docker-compose)
+- [Como executar](#como-executar)
 - [Configuração](#configuração)
 - [API](#api)
 - [Persistência](#persistência-e-migrações)
@@ -28,7 +27,6 @@ O enunciado exige autenticação, API Java/Spring Boot, persistência SQLite ou 
 - Atualização de status respeitando as transições de negócio.
 - Isolamento por usuário: cada conta só lista, consulta e altera seus próprios pedidos.
 - Interface responsiva com identidade visual Foody Delivery e documentação interativa Swagger.
-- Stack Compose opcional com API, frontend servido por Nginx e visualizador SQLite local somente leitura.
 
 Não fazem parte deste mini rastreador catálogo de produtos/restaurantes, preços, pagamentos, cálculo de frete, notificações, múltiplos perfis ou atualização em tempo real. Os itens do pedido são texto livre, normalmente um por linha.
 
@@ -38,8 +36,6 @@ Não fazem parte deste mini rastreador catálogo de produtos/restaurantes, preç
 |---|---|
 | Backend | Java 17, Spring Boot 3, Spring Web, Spring Security, Spring Data JPA, Hibernate, Flyway, SQLite, JWT (JJWT), BCrypt, springdoc-openapi |
 | Frontend | React 19, Vite 8, JavaScript, ESLint e Prettier |
-| Containers | Docker Compose, Nginx |
-| Visualizador SQLite | Python 3.12, biblioteca padrão `http.server` e SQLite em modo somente leitura |
 | E2E / CI | Playwright + Chromium, GitHub Actions |
 
 ## Estrutura
@@ -50,27 +46,22 @@ Não fazem parte deste mini rastreador catálogo de produtos/restaurantes, preç
 │   ├── src/main/java/       # API, autenticação, pedidos, segurança e regras
 │   ├── src/main/resources/  # Configuração e migrações Flyway
 │   ├── src/test/            # Testes unitários e de integração
-│   ├── Dockerfile, pom.xml
+│   ├── pom.xml
 │   └── mvnw / mvnw.cmd      # Maven Wrapper
 ├── frontend/
 │   ├── src/                 # Aplicação React, componentes, páginas e estilos
 │   ├── e2e/                 # Cenários Playwright
-│   ├── Dockerfile, nginx.conf, package.json
+│   ├── package.json
 │   └── playwright.config.js
-├── infra/
-│   ├── docker-compose.yml
-│   └── sqlite-viewer/       # Visualizador local read-only
 ├── docs/                    # Contrato, arquitetura, QA e segurança/deploy
 └── README.md
 ```
 
 ## Pré-requisitos
 
-**Sem Docker:** JDK 17, Node.js 22 e npm. Maven não precisa estar instalado globalmente: o wrapper (`mvnw` / `mvnw.cmd`) baixa a versão Maven configurada. Na primeira execução, Maven e npm precisam conseguir baixar suas dependências.
+JDK 17, Node.js 22 e npm. Maven não precisa estar instalado globalmente: o wrapper (`mvnw` / `mvnw.cmd`) baixa a versão Maven configurada. Na primeira execução, Maven e npm precisam conseguir baixar suas dependências.
 
-**Com Docker:** Docker Desktop ou Docker Engine e Docker Compose v2 (`docker compose`). Para apenas iniciar a aplicação em containers, não é preciso instalar Java, Node.js ou Python no host.
-
-## Executar sem Docker
+## Como executar
 
 Inicie a API e o frontend em terminais separados. O proxy de desenvolvimento do Vite encaminha `/api` para `http://localhost:8080`, portanto este fluxo não exige configuração de CORS.
 
@@ -106,7 +97,7 @@ npm run dev
 
 Abra a URL impressa pelo Vite, normalmente `http://localhost:5173`. Mantenha o processo da API ativo. Se mudar a porta da API, ajuste o proxy em `frontend/vite.config.js` para apontar para ela.
 
-No primeiro acesso, clique em **Cadastre-se** e crie sua conta. Não há senha de administrador predefinida. Contas criadas no Docker não são copiadas para o banco local; cada ambiente mantém seus próprios usuários e pedidos.
+No primeiro acesso, clique em **Cadastre-se** e crie sua conta. Não há senha de administrador predefinida.
 
 Para usar frontend e API em origens diferentes, configure uma allowlist CORS no backend ou no proxy. O repositório não fornece uma allowlist pronta; o caminho padrão de desenvolvimento é usar o proxy do Vite.
 
@@ -114,70 +105,7 @@ Para usar frontend e API em origens diferentes, configure uma allowlist CORS no 
 
 Pare cada processo com `Ctrl+C`. A próxima inicialização reutiliza `backend/orders.db`. Para começar do zero, pare a API e remova esse arquivo manualmente; isso apaga os dados locais.
 
-## Executar com Docker Compose
-
-Na raiz do projeto, construa e inicie os três serviços:
-
-```bash
-docker compose -f infra/docker-compose.yml up --build -d
-```
-
-No PowerShell, use o mesmo comando. Na primeira inicialização, aguarde o backend aplicar as migrações. Endereços:
-
-| Serviço | Endereço | Descrição |
-|---|---|---|
-| Aplicação | [http://localhost:3000](http://localhost:3000) | React servido pelo Nginx |
-| API | [http://localhost:8080/api](http://localhost:8080/api) | Base REST |
-| Swagger UI | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | Explorar e chamar endpoints |
-| OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | Definição OpenAPI |
-| Visualizador SQLite | [http://localhost:8081](http://localhost:8081) | Estrutura e até 100 registros por tabela |
-
-Abra a aplicação e crie uma conta em **Cadastre-se**. O comando padrão não exige configurar `.env`. Se a API local estiver rodando sem Docker na porta 8080, encerre-a com `Ctrl+C` antes de iniciar o Compose, ou personalize `BACKEND_PORT` como descrito abaixo.
-
-O Nginx encaminha `/api` ao serviço `backend` pela rede Compose. O visualizador monta o volume SQLite somente leitura, oculta o valor do hash de senha e publica a porta apenas em `127.0.0.1`. Ele pode exibir “Banco ainda não disponível” antes de a API criar o arquivo; aguarde e atualize. Não exponha a porta 8081 publicamente: a página mostra dados pessoais de pedidos.
-
-O banco do Compose é o volume nomeado `foody-sqlite`, independente de `backend/orders.db`. Parar preservando os dados:
-
-```bash
-docker compose -f infra/docker-compose.yml down
-```
-
-Ver logs:
-
-```bash
-docker compose -f infra/docker-compose.yml logs -f
-```
-
-Apagar também o volume e os dados persistidos:
-
-```bash
-docker compose -f infra/docker-compose.yml down -v
-```
-
-`down -v` é destrutivo para o banco do Compose. Ele não remove o arquivo local `backend/orders.db`.
-
-### Personalizar o Compose
-
-O repositório inclui `infra/.env.example`. Copie-o para `infra/.env`, substitua o valor demonstrativo de `JWT_SECRET` por um segredo local e passe o arquivo explicitamente. `infra/.env` é ignorado pelo Git:
-
-PowerShell: `Copy-Item infra/.env.example infra/.env`. macOS/Linux: `cp infra/.env.example infra/.env`.
-
-```dotenv
-FRONTEND_PORT=3000
-BACKEND_PORT=8080
-SQLITE_VIEWER_PORT=8081
-DB_PATH=/data/foody.db
-JWT_EXPIRATION_MS=86400000
-JWT_SECRET=troque-por-um-segredo-local-forte
-SPRING_PROFILES_ACTIVE=local
-```
-
-```bash
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
-docker compose --env-file infra/.env -f infra/docker-compose.yml down
-```
-
-Se alterar `DB_PATH` no Compose, mantenha-o dentro de `/data`, que é o diretório compartilhado pela API e pelo visualizador.
+Para inspecionar o banco, abra `backend/orders.db` com qualquer cliente SQLite (por exemplo, DB Browser for SQLite ou a extensão SQLite do VS Code), de preferência com a API parada ou em modo somente leitura. O projeto não fornece ferramenta própria para isso.
 
 ## Configuração
 
@@ -185,21 +113,38 @@ Se alterar `DB_PATH` no Compose, mantenha-o dentro de `/data`, que é o diretór
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `DB_PATH` | `orders.db` | Caminho do arquivo SQLite; no Compose, `/data/foody.db`. |
-| `JWT_SECRET` | Segredo demonstrativo local | Chave para assinatura JWT. Use segredo aleatório e exclusivo fora do desenvolvimento. O perfil `prod` recusa segredos curtos ou placeholders conhecidos. |
+| `DB_PATH` | `orders.db` | Caminho do arquivo SQLite, relativo ao diretório de execução ou absoluto. |
+| `JWT_SECRET` | Segredo padrão apenas para desenvolvimento | Chave para assinatura JWT. Troque por um segredo aleatório e exclusivo em produção. O perfil `prod` recusa segredos curtos ou placeholders conhecidos. |
 | `JWT_EXPIRATION_MS` | `86400000` (24 horas) | Validade do token em milissegundos. |
 | `SERVER_PORT` | `8080` | Porta HTTP do Spring Boot. |
-| `SPRING_PROFILES_ACTIVE` | Não definido ao executar diretamente; `local` no Compose | Perfil Spring; `prod` habilita verificações do segredo de produção. |
+| `SPRING_PROFILES_ACTIVE` | Não definido | Perfil Spring; `prod` habilita verificações do segredo de produção. |
 
-### Frontend e Compose
+As variáveis `DB_PATH`, `JWT_SECRET` e `JWT_EXPIRATION_MS` são opcionais e lidas por `backend/src/main/resources/application.properties`. Defina-as no terminal da API antes de iniciá-la. Os exemplos partem da raiz do repositório; o segredo abaixo é apenas ilustrativo.
+
+**Windows PowerShell**
+
+```powershell
+$env:DB_PATH = "orders.db"
+$env:JWT_SECRET = "substitua-por-um-segredo-aleatorio-com-ao-menos-32-bytes"
+$env:JWT_EXPIRATION_MS = "86400000"
+Set-Location .\backend
+.\mvnw.cmd spring-boot:run
+```
+
+**macOS / Linux**
+
+```bash
+export DB_PATH=orders.db
+export JWT_SECRET='substitua-por-um-segredo-aleatorio-com-ao-menos-32-bytes'
+export JWT_EXPIRATION_MS=86400000
+cd backend && ./mvnw spring-boot:run
+```
+
+### Frontend
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `VITE_API_URL` | `/api` | Base das chamadas HTTP. O Vite encaminha `/api` para a API local; o Nginx do container encaminha para `backend`. É variável de build, não coloque segredos nela. |
-| `FRONTEND_PORT` | `3000` | Porta do frontend no host. |
-| `BACKEND_PORT` | `8080` | Porta da API no host. |
-| `SQLITE_VIEWER_PORT` | `8081` | Porta do visualizador, sempre vinculada ao loopback. |
-| `BACKEND_IMAGE`, `FRONTEND_IMAGE`, `SQLITE_VIEWER_IMAGE` | Imagens `foody-*:local` | Nomes opcionais para as imagens do Compose. |
+| `VITE_API_URL` | `/api` | Base das chamadas HTTP. O Vite encaminha `/api` para a API local. É variável de build, não coloque segredos nela. |
 
 O JWT do navegador fica somente em memória React, não em `localStorage` nem `sessionStorage`; recarregar ou fechar a página exige novo login.
 
@@ -212,7 +157,7 @@ As rotas públicas são cadastro e login. Todas as rotas de pedido exigem `Autho
 | `POST` | `/api/auth/register` | Público | Cria conta e devolve JWT (`201`). |
 | `POST` | `/api/auth/login` | Público | Autentica e devolve JWT (`200`). |
 | `POST` | `/api/orders` | JWT | Cria pedido em `RECEBIDO` (`201`). |
-| `GET` | `/api/orders` | JWT | Lista pedidos paginados, opcionalmente filtrados. |
+| `GET` | `/api/orders` | JWT | Lista pedidos paginados, com filtro por status e busca por ID ou nome do cliente. |
 | `GET` | `/api/orders/{id}` | JWT | Consulta pedido pertencente à conta. |
 | `PATCH` | `/api/orders/{id}/status` | JWT | Atualiza status se a transição for válida. |
 
@@ -249,7 +194,7 @@ Exemplo de pedido (enviar o token no cabeçalho `Authorization`):
 
 O servidor define ID, data de criação, responsável e status inicial. Limites: nome 120 caracteres, e-mail 254, senha no mínimo 8, cliente 120, endereço 500, complemento opcional 200 e itens 2000.
 
-`GET /api/orders` aceita `page` (inicia em zero, padrão 0), `size` (padrão 10, de 1 a 100) e `status` opcional. Exemplo: `GET /api/orders?page=0&size=10&status=EM_PREPARO`. A resposta inclui `content`, dados da página (`page`, `size`, `totalElements`, `totalPages`, `first`, `last`) e `statusCounts` para todos os status do usuário, mesmo com filtro aplicado.
+`GET /api/orders` aceita `page` (inicia em zero, padrão 0), `size` (padrão 10, de 1 a 100) `status` opcional e `q` opcional (até 100 caracteres) para buscar por nome do cliente (parcial, sem diferenciar maiúsculas) ou por número do pedido (`12`, `#12` ou `#0012`). Exemplo: `GET /api/orders?page=0&size=10&status=EM_PREPARO&q=maria`. A resposta inclui `content`, dados da página (`page`, `size`, `totalElements`, `totalPages`, `first`, `last`) e `statusCounts` para todos os status do usuário, mesmo com filtro ou busca aplicados.
 
 Transições disponíveis:
 
@@ -267,12 +212,11 @@ No Swagger, execute `POST /api/auth/register` ou `POST /api/auth/login`, copie o
 ## Persistência e migrações
 
 - Execução local: SQLite em `backend/orders.db` por padrão.
-- Compose: SQLite em `/data/foody.db`, no volume persistente `foody-sqlite`.
 - Flyway aplica migrações versionadas ao iniciar; Hibernate não altera o esquema.
 - `V1` cria o esquema legado e `V2` associa pedidos aos usuários, preservando registros que podem ser associados.
-- Nome, endereço, complemento e itens ficam em texto claro no arquivo SQLite. O volume garante persistência, não criptografia em repouso.
+- Nome, endereço, complemento e itens ficam em texto claro no arquivo SQLite. O arquivo local garante persistência, não criptografia em repouso.
 
-A base local e o volume Docker são independentes: apagar um não apaga o outro.
+Use `DB_PATH` para escolher outro arquivo SQLite. Preserve o arquivo entre reinicializações e faça backups consistentes antes de alterações importantes.
 
 ## Testes, qualidade e CI
 
@@ -309,38 +253,59 @@ npm run build
 
 ### Playwright E2E
 
-Para executar E2E, inicie uma stack Docker Compose de teste chamada `foody-e2e`. É necessário Docker ativo, Node.js 22 e Chromium. O nome separa containers e volume, mas as portas padrão continuam sendo 3000, 8080 e 8081: elas precisam estar livres. Pare a stack normal com `docker compose -f infra/docker-compose.yml down` (preserva seus dados) e encerre a API local antes de executar os comandos abaixo, na raiz:
+Para executar E2E, use JDK 17, Node.js 22 e Chromium. Inicie a API e o frontend localmente, em terminais separados, antes de rodar o Playwright. Reserve as portas 8080 e 3000 e use um `DB_PATH` descartável para não alterar `backend/orders.db`.
+
+**1. API — Windows PowerShell**, a partir da raiz:
+
+```powershell
+$env:DB_PATH = Join-Path ([System.IO.Path]::GetTempPath()) ("foody-e2e-" + [guid]::NewGuid().ToString() + ".db")
+Set-Location .\backend
+.\mvnw.cmd spring-boot:run
+```
+
+**API — macOS / Linux**, a partir da raiz:
 
 ```bash
-docker compose -p foody-e2e -f infra/docker-compose.yml up --build -d
+export DB_PATH="$(mktemp -d)/foody-e2e.db"
+cd backend && ./mvnw spring-boot:run
+```
+
+Guarde o caminho gerado para removê-lo manualmente após encerrar os processos. Aguarde a API responder em `http://127.0.0.1:8080/v3/api-docs`.
+
+**2. Frontend**, em outro terminal, a partir da raiz:
+
+```bash
 cd frontend
 npm ci
+npm run dev -- --port 3000 --strictPort
+```
+
+**3. Playwright**, em um terceiro terminal, na pasta `frontend`:
+
+```bash
 npx playwright install chromium
 npm run test:e2e
 ```
 
-Depois, volte à raiz para parar e remover a stack e o banco descartável:
+O Playwright usa `E2E_BASE_URL` ou `http://127.0.0.1:3000`. Se usar outra porta do Vite, defina `$env:E2E_BASE_URL = "http://127.0.0.1:5173"` no PowerShell ou `export E2E_BASE_URL=http://127.0.0.1:5173` no bash antes de executar a suíte. `E2E_API_URL` aponta para `http://127.0.0.1:8080` por padrão; ao mudar a porta da API, ajuste também o proxy do Vite.
 
-```bash
-cd ..
-docker compose -p foody-e2e -f infra/docker-compose.yml down -v
-```
+Ao terminar, pare os processos com `Ctrl+C` e remova apenas o arquivo SQLite descartável e seu diretório temporário, se criado.
 
-O Playwright está fixado no `package-lock.json` e é instalado por `npm ci`. Os cenários cobrem Swagger, cadastro, criação e atualização do pedido, sessão em memória após recarga, paginação, filtro (inclusive selecionar novamente a etapa ativa), isolamento entre contas e visualizador SQLite.
+O Playwright está fixado no `package-lock.json` e é instalado por `npm ci`. Os cenários cobrem Swagger, cadastro, criação e atualização do pedido, sessão em memória após recarga, paginação, filtro (inclusive selecionar novamente a etapa ativa), isolamento entre contas, busca e persistência dos pedidos consultada pela API.
 
 A política `.gitattributes` mantém arquivos de texto em LF e scripts Windows em CRLF. Em um checkout antigo, execute `npm run format` no frontend e `./mvnw spotless:apply` no backend para normalizar os arquivos antes dos checks; no PowerShell use `.\mvnw.cmd spotless:apply`.
 
 ### GitHub Actions
 
-`.github/workflows/ci.yml` roda em pull requests e pushes à branch `main` e manualmente. Verifica formatação e testes backend, lint/formatação/build frontend, build das imagens Docker e E2E. Há CI, mas não há publicação ou deploy automático (CD) configurado.
+`.github/workflows/ci.yml` roda em pull requests e pushes à branch `main` e manualmente. Verifica formatação e testes backend, lint/formatação/build frontend e E2E. Para o E2E, a API é iniciada pelo Maven Wrapper e o frontend pelo Vite na porta 3000, diretamente no runner, com um arquivo SQLite descartável. Há CI, mas não há publicação ou deploy automático (CD) configurado.
 
 ## Segurança e limites conhecidos
 
 - Use contas e pedidos fictícios no desenvolvimento. SQLite não criptografa dados em repouso.
 - O segredo JWT padrão é somente para desenvolvimento. Em ambiente publicado, configure `SPRING_PROFILES_ACTIVE=prod` e um `JWT_SECRET` aleatório, exclusivo e com ao menos 32 bytes. Não versione segredos nem os inclua em variáveis `VITE_*`.
 - O token expira conforme `JWT_EXPIRATION_MS` (24 horas por padrão). A sessão no frontend é em memória e termina ao atualizar ou fechar a página; isso não elimina risco de XSS enquanto a sessão está aberta.
-- Docker Compose mantém frontend e API na mesma origem por meio do Nginx. Em origens separadas, configure CORS com allowlist antes de publicar.
-- O visualizador é ferramenta local de inspeção, não painel administrativo de produção. Ele exibe informações pessoais dos pedidos; mantenha sua porta no loopback.
+- O proxy do Vite mantém as chamadas `/api` na origem do frontend durante o desenvolvimento. No deploy, sirva `frontend/dist` atrás de um proxy reverso que encaminhe `/api` para a API. Em origens separadas, configure CORS com allowlist antes de publicar.
+- Ao inspecionar `orders.db` com um cliente SQLite, lembre que o arquivo contém dados pessoais dos pedidos e hashes de senha; não o publique nem o versione.
 - Não estão implementados pagamento, perfis/RBAC, refresh ou revogação de JWT, criptografia SQLite, CD, nem configuração completa de TLS, proxy público e backups de produção.
 
 ## Documentação complementar

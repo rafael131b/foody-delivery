@@ -75,11 +75,13 @@
 
 ## Testes automatizados e CI
 
-Os testes de integração do backend usam um SQLite em memória (`backend/src/test/resources/application.properties`) e não alteram o banco persistido do Docker. O Playwright E2E cobre cadastro, criação/atualização e persistência do pedido, filtro/paginação server-side e consulta ao visualizador SQLite. O GitHub Actions executa testes backend, build frontend, build do Compose e E2E em pull requests e pushes à `main`. Isso é CI; publicação e deploy (CD) ainda não estão configurados.
+Os testes de integração do backend usam um SQLite em memória (`backend/src/test/resources/application.properties`) e não alteram o arquivo SQLite local persistido. O Playwright E2E cobre cadastro, criação/atualização e persistência do pedido, filtro/paginação server-side e consulta dos pedidos persistidos pela API. O GitHub Actions executa testes backend, lint/formatação/build frontend e E2E com API via Maven Wrapper e frontend via Vite diretamente no runner em pull requests e pushes à `main`. Isso é CI; publicação e deploy (CD) ainda não estão configurados.
+
+Para a execução vigente do E2E, inicie a API com um `DB_PATH` descartável e o frontend com `npm run dev -- --port 3000 --strictPort`; depois execute `npm run test:e2e` em outro terminal na pasta `frontend`. Para outra URL do Vite, defina `E2E_BASE_URL`. Consulte os [comandos completos](../README.md#playwright-e2e) antes de iniciar a suíte.
 
 ## Limites conhecidos
 
-- A suíte ainda não cobre concorrência, reinicialização do container com dados, XSS/SQL injection ou testes visuais/responsivos automatizados.
+- A suíte ainda não cobre concorrência, reinicialização da aplicação com dados, XSS/SQL injection ou testes visuais/responsivos automatizados.
 - O token do frontend é mantido somente em memória React, não em `localStorage` nem `sessionStorage`; para produção, avaliar cookie `HttpOnly` e revisar XSS/CSRF.
 - O SQLite mantém dados de pedido em texto claro; não há criptografia em repouso.
 - Segredos de desenvolvimento são aceitos somente no perfil local; produção deve definir `SPRING_PROFILES_ACTIVE=prod` e `JWT_SECRET` exclusivo.
@@ -104,3 +106,5 @@ Cobertura automatizada atual: 22 testes de backend. Os resultados não represent
 | 20/10/2026 | Windows, revisão dos requisitos | `.\mvnw.cmd -B spotless:check test` na pasta backend | Passou (22 testes) | Após normalização LF com Spotless; sem falhas, erros ou testes ignorados |
 | 20/10/2026 | Windows, revisão dos requisitos | `npm run lint`, `npm run format:check`, `npm run build` na pasta frontend | Passou | Política LF via `.gitattributes` e Prettier; build de produção concluído |
 | 20/10/2026 | Compose `foody-quality-check` | Build dos três serviços e `npm run test:e2e` | Passou (3 testes) | Portas 13000/18080/18081; regressão UI-09 incluída; Playwright fixado no lockfile |
+| 20/10/2026 | Documentação e execução local | Remoção do Docker do projeto | Instruções atualizadas | API via Maven Wrapper, frontend via Vite e E2E direto no runner; registros anteriores preservados como histórico, sem indicar uma nova execução de testes |
+| 20/10/2026 | Documentação e CI | Remoção do visualizador SQLite (Python) | Instruções atualizadas | Ferramenta, passo de CI e variável `E2E_VIEWER_URL` removidos; a persistência é verificada pela API no E2E; registros anteriores preservados como histórico |

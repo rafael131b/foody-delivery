@@ -4,18 +4,15 @@ Este documento separa o que existe hoje das recomendações para produção. A s
 
 ## Variáveis de ambiente
 
-Copie `infra/.env.example` para um arquivo de ambiente local ou para o mecanismo de secrets do provedor. Nunca versione o arquivo com valores reais.
+Defina as variáveis no ambiente do processo da API ou no mecanismo de secrets do provedor. Os exemplos para PowerShell e bash estão no [README](../README.md#configuração). Nunca versione valores reais.
 
-Variáveis lidas pelo Compose atual:
+Variáveis opcionais lidas por `application.properties`:
 
-- `JWT_SECRET`: segredo aleatório, longo e exclusivo por ambiente. Não use o valor de exemplo.
-- `SPRING_PROFILES_ACTIVE`: `local` por padrão no Compose; use `prod` no ambiente publicado. O perfil de produção recusa segredo ausente/curto e placeholders conhecidos.
-- `JWT_EXPIRATION_MS`: validade do token em milissegundos (padrão local: 24 horas).
-- `DB_PATH`: caminho do arquivo SQLite; no container, `/data/foody.db`.
-- `BACKEND_IMAGE` e `FRONTEND_IMAGE`: imagens publicadas no deploy.
-- `BACKEND_PORT` e `FRONTEND_PORT`: portas expostas pelo compose.
+- `JWT_SECRET`: segredo para assinatura JWT. O default é apenas para desenvolvimento; troque-o em produção por um segredo aleatório, longo e exclusivo por ambiente.
+- `JWT_EXPIRATION_MS`: validade do token em milissegundos (padrão: `86400000`, 24 horas).
+- `DB_PATH`: caminho do arquivo SQLite local (padrão: `orders.db`, relativo ao diretório de execução). Em produção, prefira um caminho absoluto em diretório persistente com acesso restrito.
 
-O Compose não configura `CORS_ALLOWED_ORIGINS`: o frontend usa `/api` na mesma origem, encaminhado pelo Nginx. Para executar frontend e backend em origens distintas, ainda é necessário configurar CORS.
+O Spring Boot também aceita `SERVER_PORT` (padrão: `8080`) e `SPRING_PROFILES_ACTIVE`. Use o perfil `prod` no ambiente publicado; ele recusa segredos curtos e placeholders conhecidos.
 
 Em produção, configure `SPRING_PROFILES_ACTIVE=prod` e injete um `JWT_SECRET` aleatório, exclusivo, com pelo menos 32 bytes por Secret Manager, variáveis protegidas do CI/CD ou secrets do ambiente de hospedagem. A inicialização falha se o perfil `prod` receber um segredo curto ou um placeholder conhecido. Não coloque JWT, senhas, tokens ou arquivos `.db` no Git.
 
@@ -43,24 +40,24 @@ Para este desafio, o frontend pode enviar `Authorization: Bearer <token>`. Em um
 
 ## CORS
 
-O Compose serve o frontend e encaminha `/api` pelo Nginx para o backend, mantendo a mesma origem. Não existe configuração explícita de CORS na aplicação; se as origens forem separadas, configure allowlist no backend/proxy antes de publicar.
+No desenvolvimento, o proxy do Vite encaminha `/api` para a API local. Em produção, sirva `frontend/dist` atrás de um proxy reverso que encaminhe `/api` para o backend, mantendo a mesma origem. Não existe configuração explícita de CORS na aplicação; se as origens forem separadas, configure allowlist no backend/proxy antes de publicar.
 
 ## SQLite
 
-- Use um volume persistente montado em `/data`; o arquivo não deve ficar apenas no filesystem efêmero do container.
-- O SQLite atual não é criptografado em repouso. Nome, endereço, complemento, itens e metadados ficam legíveis no arquivo. O volume protege persistência, não confidencialidade; use criptografia de disco/host ou implemente proteção adequada antes de armazenar dados reais.
+- Mantenha o arquivo SQLite local em um diretório persistente escolhido por `DB_PATH`; preserve-o entre reinicializações e atualizações da aplicação.
+- O SQLite atual não é criptografado em repouso. Nome, endereço, complemento, itens e metadados ficam legíveis no arquivo. A persistência do arquivo local não garante confidencialidade; use criptografia de disco/host ou implemente proteção adequada antes de armazenar dados reais.
 - Restrinja permissões do diretório e faça backup do arquivo com a aplicação parada ou usando uma estratégia consistente.
 - SQLite é adequado para o desafio e baixo volume, mas não é a melhor opção para alta concorrência ou múltiplas réplicas.
-- Não compartilhe o mesmo arquivo SQLite entre containers concorrentes.
+- Não compartilhe o mesmo arquivo SQLite entre instâncias concorrentes da API.
 - Em produção, planeje migração para PostgreSQL antes de escalar horizontalmente.
 
 ## Execução local
 
-1. Para execução local, o Compose usa o perfil `local` e um segredo demonstrativo; não o reutilize fora da máquina de desenvolvimento.
+1. A execução local usa um segredo padrão de desenvolvimento; não o reutilize fora da máquina de desenvolvimento.
 2. Para perfil `prod`, configure `SPRING_PROFILES_ACTIVE=prod` e injete um `JWT_SECRET` aleatório e exclusivo.
-3. Inicie a API com o comando documentado pelo agente de backend.
-4. Inicie o frontend com o comando documentado pelo agente de frontend.
-5. Acesse somente as origens permitidas por CORS.
+3. Inicie a API pelo Maven Wrapper conforme o [README](../README.md#como-executar).
+4. Inicie o frontend com `npm ci` e `npm run dev` na pasta `frontend`.
+5. Use o proxy do Vite para `/api`; em origens distintas, configure uma allowlist CORS no backend ou no proxy.
 
 Não use dados reais de clientes no ambiente local. Para validar autenticação, use uma conta de teste com senha exclusiva.
 
@@ -79,16 +76,18 @@ Publique apenas o diretório de artefatos gerado pelo build. Sirva arquivos est�
 
 ## Deploy simplificado
 
-O arquivo `infra/docker-compose.yml` fornece uma referência para executar imagens já construídas da API e do frontend. Antes de usar:
+Prepare o artefato Java da API com o Maven Wrapper e construa o frontend com `npm ci` e `npm run build`. Execute a API com Java 17 sob o gerenciador de processos do ambiente de hospedagem e sirva `frontend/dist` atrás de um proxy reverso HTTPS que encaminhe `/api` para a API. Se as origens forem diferentes, configure uma allowlist CORS no backend ou no proxy e a URL pública da API no build do frontend.
 
-- publique imagens imutáveis com tag de commit;
-- forneça os valores reais por secrets do provedor;
-- configure um proxy HTTPS na frente do frontend/API;
-- monte o volume `foody-sqlite` para preservar os pedidos;
+Antes de publicar:
+
+- identifique os artefatos pelo commit usado no build;
+- forneça os valores reais por secrets do provedor e ative `SPRING_PROFILES_ACTIVE=prod`;
+- configure HTTPS, firewall e acesso restrito à API conforme a topologia escolhida;
+- preserve o arquivo SQLite local em diretório persistente definido por `DB_PATH`;
 - valide health checks, logs e backup;
 - faça smoke test de cadastro, login, criação, listagem e atualização de pedido.
 
-O compose de referência não substitui TLS, firewall, observabilidade ou política de backup do provedor.
+O repositório não inclui configuração completa de hospedagem, TLS, observabilidade ou política de backup do provedor.
 
 ## Checklist de entrega
 
@@ -97,9 +96,9 @@ O compose de referência não substitui TLS, firewall, observabilidade ou polít
 - [ ] Endpoints de pedidos exigem autenticação.
 - [ ] CORS está restrito ao domínio do frontend.
 - [ ] Entrada e transições de status são validadas no backend.
-- [ ] SQLite está em volume persistente e há procedimento de backup.
+- [ ] O arquivo SQLite local está em diretório persistente e há procedimento de backup.
 - [ ] Frontend foi construído sem segredos embutidos.
-- [ ] Imagens/dependências foram verificadas e identificadas pelo commit.
+- [ ] Artefatos/dependências foram verificados e identificados pelo commit.
 - [ ] Smoke test foi executado no ambiente de entrega.
 - [ ] Histórico Git contém commits claros e o repositório não inclui `.env`, banco ou artefatos de build.
 
