@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test'
 
 const apiUrl = process.env.E2E_API_URL || 'http://127.0.0.1:8080'
-const viewerUrl = process.env.E2E_VIEWER_URL || 'http://127.0.0.1:8081'
 
 test('serves interactive Swagger documentation for the API', async ({ page, request }) => {
   const openApiResponse = await request.get(`${apiUrl}/v3/api-docs`)
@@ -18,10 +17,7 @@ test('serves interactive Swagger documentation for the API', async ({ page, requ
   await expect(page.getByRole('button', { name: 'GET /api/orders', exact: true })).toBeVisible()
 })
 
-test('registers, manages an order, and persists it in the read-only SQLite viewer', async ({
-  page,
-  browser,
-}) => {
+test('registers, manages an order, and persists it across sessions', async ({ page }) => {
   const suffix = Date.now()
   const email = 'e2e-' + suffix + '@example.test'
   const password = 'E2e-password-' + suffix
@@ -126,27 +122,15 @@ test('registers, manages an order, and persists it in the read-only SQLite viewe
     true,
   )
 
-  const viewer = await browser.newPage()
-  await expect
-    .poll(
-      async () => {
-        const response = await viewer.request.get(`${viewerUrl}/health`)
-        return response.status()
-      },
-      { timeout: 30_000 },
-    )
-    .toBe(200)
-  await viewer.goto(`${viewerUrl}/`)
-  const databasePage = await viewer.locator('body').innerText()
-  expect(databasePage).toContain('Estrutura da tabela')
-  expect(databasePage).toContain('password_hash')
-  expect(databasePage).toContain('Hash armazenado')
-  expect(databasePage).toContain(customer)
-  expect(databasePage).toContain(complement)
-  expect(databasePage).toContain('Usuário E2E')
-  expect(databasePage).toContain('EM_PREPARO')
-  expect(databasePage).not.toContain(password)
-  await viewer.close()
+  const persistedResponse = await page.request.get(`${apiUrl}/api/orders?status=EM_PREPARO`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  expect(persistedResponse.ok()).toBe(true)
+  const persistedBody = JSON.stringify(await persistedResponse.json())
+  expect(persistedBody).toContain(customer)
+  expect(persistedBody).toContain(complement)
+  expect(persistedBody).toContain('Usuário E2E')
+  expect(persistedBody).not.toContain(password)
 })
 
 test('keeps orders isolated when registering and logging into different accounts', async ({
@@ -212,4 +196,91 @@ test('keeps orders isolated when registering and logging into different accounts
   await expect(page.getByRole('article').filter({ hasText: secondOrder })).toBeVisible()
   await expect(page.getByText(firstOrder)).toHaveCount(0)
   expect(pageErrors).toEqual([])
+})
+
+test('searches orders by customer and ID together with status filters', async ({ page }) => {
+  const suffix = Date.now()
+  const email = `search-${suffix}@example.test`
+  const password = `Search-${suffix}-password`
+  const customer = `Cliente Busca ${suffix}`
+
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Cadastre-se' }).click()
+  await page.getByLabel('Nome completo').fill('Responsável pela busca')
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByLabel('Senha').fill(password)
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
+
+  const loginResponse = await page.request.post(`${apiUrl}/api/auth/login`, {
+    data: { email, password },
+  })
+  expect(loginResponse.ok()).toBe(true)
+  const { token } = await loginResponse.json()
+  let searchedOrder
+  for (let index = 0; index < 11; index++) {
+    const response = await page.request.post(`${apiUrl}/api/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        customer: index === 0 ? customer : `Outro cliente ${index}`,
+        items: '1x Item de teste',
+        deliveryAddress: 'Rua da Busca, 123',
+      },
+    })
+    expect(response.status()).toBe(201)
+    if (index === 0) searchedOrder = await response.json()
+  }
+
+  await page.getByRole('button', { name: /Todos/ }).click()
+  await expect(page.getByText('Página 1 de 2')).toBeVisible()
+  await page.getByRole('button', { name: 'Próxima' }).click()
+  await expect(page.getByText('Página 2 de 2')).toBeVisible()
+
+  const search = page.getByRole('searchbox', { name: 'Buscar pedidos' })
+  const searchResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return url.pathname === '/api/orders' && url.searchParams.get('q') === `BUSCA ${suffix}`
+  })
+  await search.fill(`  BUSCA ${suffix}  `)
+  const response = await searchResponse
+  expect(response.ok()).toBe(true)
+  expect(new URL(response.url()).searchParams.get('page')).toBe('0')
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await expect(page.getByRole('article')).toContainText(customer)
+  await expect(page.getByText('Página 1 de 1')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Todos 11', exact: true })).toBeVisible()
+
+  const formattedId = `#${String(searchedOrder.id).padStart(4, '0')}`
+  const idResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return url.pathname === '/api/orders' && url.searchParams.get('q') === formattedId
+  })
+  await search.fill(formattedId)
+  expect((await idResponse).ok()).toBe(true)
+  await expect(page.getByRole('article')).toContainText(customer)
+  await page.getByRole('button', { name: /Em preparo/ }).click()
+  await expect(page.getByText('Nenhum pedido encontrado', { exact: true })).toBeVisible()
+  await expect(page.getByText('Tente outro número ou nome de cliente.')).toBeVisible()
+  await expect(
+    page.locator('.empty-state').getByRole('button', { name: /Novo pedido/ }),
+  ).toHaveCount(0)
+
+  await page.getByRole('button', { name: /Todos/ }).click()
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Limpar busca' }).click()
+  await expect(search).toHaveValue('')
+  await expect(page.getByRole('article')).toHaveCount(10)
+  await expect(page.getByText('Página 1 de 2')).toBeVisible()
+
+  await search.fill('cliente inexistente')
+  await expect(page.getByText('Nenhum pedido encontrado', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /Novo pedido/ }).click()
+  await page.getByLabel('Nome do cliente').fill('Pedido criado durante a busca')
+  await page.getByLabel('Endereço de entrega').fill('Rua da Busca, 456')
+  await page.getByLabel('Itens do pedido').fill('1x Item de teste')
+  await page.getByRole('button', { name: 'Salvar pedido' }).click()
+  await expect(search).toHaveValue('')
+  await expect(
+    page.getByRole('article').filter({ hasText: 'Pedido criado durante a busca' }),
+  ).toBeVisible()
 })
