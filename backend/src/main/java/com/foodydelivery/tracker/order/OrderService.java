@@ -2,6 +2,7 @@ package com.foodydelivery.tracker.order;
 
 import com.foodydelivery.tracker.user.UserRepository;
 import java.util.EnumMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.data.domain.Page;
@@ -35,16 +36,31 @@ public class OrderService {
     return OrderDtos.Response.of(repo.save(order));
   }
 
-  public OrderDtos.PageResponse list(Long ownerId, int page, int size, OrderStatus status) {
+  public OrderDtos.PageResponse list(
+      Long ownerId, int page, int size, OrderStatus status, String q) {
     Pageable pageable =
         PageRequest.of(
             page,
             size,
             Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
-    Page<Order> orders =
-        status == null
-            ? repo.findAllByOwner_Id(ownerId, pageable)
-            : repo.findAllByOwner_IdAndStatus(ownerId, status, pageable);
+    String query = q == null ? "" : q.trim();
+    Page<Order> orders;
+    if (query.isBlank()) {
+      orders =
+          status == null
+              ? repo.findAllByOwner_Id(ownerId, pageable)
+              : repo.findAllByOwner_IdAndStatus(ownerId, status, pageable);
+    } else {
+      String pattern =
+          "%"
+              + query
+                  .toLowerCase(Locale.ROOT)
+                  .replace("!", "!!")
+                  .replace("%", "!%")
+                  .replace("_", "!_")
+              + "%";
+      orders = repo.searchByOwner(ownerId, status, pattern, searchOrderId(query), pageable);
+    }
 
     Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
     for (OrderStatus orderStatus : OrderStatus.values()) {
@@ -77,6 +93,18 @@ public class OrderService {
     }
     order.setStatus(request.status());
     return OrderDtos.Response.of(order);
+  }
+
+  private Long searchOrderId(String query) {
+    String digits = query.startsWith("#") ? query.substring(1) : query;
+    if (!digits.matches("[0-9]+")) {
+      return null;
+    }
+    try {
+      return new java.math.BigInteger(digits).longValueExact();
+    } catch (ArithmeticException exception) {
+      return null;
+    }
   }
 
   private Order findOwnedOrder(Long id, Long ownerId) {

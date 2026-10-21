@@ -16,18 +16,27 @@ export default function useOrders(token) {
   const [pageInfo, setPageInfo] = useState(initialPageInfo)
   const [counts, setCounts] = useState({})
   const [filter, setFilter] = useState('TODOS')
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshVersion, setRefreshVersion] = useState(0)
   const requestVersion = useRef(0)
   const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
+  const normalizedSearch = search.trim()
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(normalizedSearch), 300)
+    return () => clearTimeout(timeout)
+  }, [normalizedSearch])
 
   useEffect(() => {
     const currentRequest = ++requestVersion.current
+    if (normalizedSearch !== debouncedSearch) return
     let active = true
 
     api
-      .orders({ page: pageInfo.page, size: pageSize, status: filter }, token)
+      .orders({ page: pageInfo.page, size: pageSize, status: filter, q: debouncedSearch }, token)
       .then((result) => {
         if (!active || currentRequest !== requestVersion.current) return
         if (!result || !Array.isArray(result.content) || !result.statusCounts) {
@@ -48,7 +57,16 @@ export default function useOrders(token) {
     return () => {
       active = false
     }
-  }, [filter, pageInfo.page, refreshVersion, token])
+  }, [filter, pageInfo.page, refreshVersion, token, normalizedSearch, debouncedSearch])
+
+  const selectSearch = (nextSearch) => {
+    setSearch(nextSearch)
+    if (nextSearch.trim() === normalizedSearch) return
+    requestVersion.current += 1
+    setLoading(true)
+    setError('')
+    setPageInfo((current) => ({ ...current, page: 0 }))
+  }
 
   const selectFilter = (nextFilter) => {
     setLoading(true)
@@ -85,9 +103,11 @@ export default function useOrders(token) {
     counts,
     totalCount,
     filter,
+    search,
     error,
     loading,
     selectFilter,
+    selectSearch,
     goToPage,
     refresh,
     updateStatus,

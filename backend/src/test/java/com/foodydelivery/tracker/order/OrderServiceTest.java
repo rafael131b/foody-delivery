@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,6 +18,18 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class OrderServiceTest {
+  @Test
+  void parsesHashPrefixedIdWithLeadingZeros() {
+    OrderRepository repo = mock(OrderRepository.class);
+    UserRepository users = mock(UserRepository.class);
+    when(repo.searchByOwner(eq(7L), isNull(), eq("%#0001%"), eq(1L), any()))
+        .thenReturn(org.springframework.data.domain.Page.empty());
+
+    new OrderService(repo, users).list(7L, 0, 10, null, " #0001 ");
+
+    verify(repo).searchByOwner(eq(7L), isNull(), eq("%#0001%"), eq(1L), any());
+  }
+
   @Test
   void createsOrderWithReceivedStatusAndOptionalComplement() {
     OrderRepository repo = mock(OrderRepository.class);

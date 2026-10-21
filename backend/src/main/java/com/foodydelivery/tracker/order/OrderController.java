@@ -2,6 +2,7 @@ package com.foodydelivery.tracker.order;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -43,12 +44,20 @@ public class OrderController {
       Authentication auth,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size,
-      @RequestParam(required = false) OrderStatus status) {
+      @RequestParam(required = false) OrderStatus status,
+      @Parameter(
+              description =
+                  "Busca por nome parcial do cliente (sem diferenciar maiúsculas e minúsculas) ou ID, com # opcional; máximo de 100 caracteres")
+          @RequestParam(required = false)
+          String q) {
+    if (q != null && q.length() > 100) {
+      throw new ResponseStatusException(BAD_REQUEST, "Busca deve ter no máximo 100 caracteres");
+    }
     if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
       throw new ResponseStatusException(
           BAD_REQUEST, "Página deve ser maior ou igual a zero e tamanho deve estar entre 1 e 100");
     }
-    return service.list(ownerId(auth), page, size, status);
+    return service.list(ownerId(auth), page, size, status, q);
   }
 
   @GetMapping("/{id}")
