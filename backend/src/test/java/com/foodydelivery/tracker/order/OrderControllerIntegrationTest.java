@@ -193,6 +193,123 @@ class OrderControllerIntegrationTest {
         .andExpect(status().isUnauthorized());
   }
 
+  @Test
+  void searchesPartialCustomerIgnoringCaseAndPaginatesWithGlobalCounts() throws Exception {
+    String token = registerAndGetToken("search-name");
+    long first = createOrder(token, "Mariana Silva");
+    long second = createOrder(token, "MARIANA Souza");
+    createOrder(token, "Bruno");
+    updateStatus(token, first, "CANCELADO").andExpect(status().isOk());
+
+    mvc.perform(
+            get("/api/orders")
+                .header("Authorization", bearer(token))
+                .param("q", "  rIaNa  ")
+                .param("size", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id", is((int) second)))
+        .andExpect(jsonPath("$.totalElements", is(2)))
+        .andExpect(jsonPath("$.totalPages", is(2)))
+        .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(2)))
+        .andExpect(jsonPath("$.statusCounts.CANCELADO", is(1)));
+
+    mvc.perform(
+            get("/api/orders")
+                .header("Authorization", bearer(token))
+                .param("q", "riana")
+                .param("status", "CANCELADO"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id", is((int) first)))
+        .andExpect(jsonPath("$.totalElements", is(1)))
+        .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(2)));
+
+    mvc.perform(
+            get("/api/orders")
+                .header("Authorization", bearer(token))
+                .param("q", "riana")
+                .param("size", "1")
+                .param("page", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id", is((int) first)))
+        .andExpect(jsonPath("$.totalElements", is(2)))
+        .andExpect(jsonPath("$.last", is(true)));
+  }
+
+  @Test
+  void searchesIdsWithOptionalHashAndLeadingZerosAndCombinesWithStatus() throws Exception {
+    String token = registerAndGetToken("search-id");
+    long id = createOrder(token, "Bruno");
+    long nameMatch = createOrder(token, "Cliente " + id);
+    for (String query : new String[] {Long.toString(id), "000" + id}) {
+      mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", query))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.totalElements", is(query.equals(Long.toString(id)) ? 2 : 1)));
+    }
+    for (String query : new String[] {"#" + id, "#000" + id}) {
+      mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", query))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content[0].id", is((int) id)))
+          .andExpect(jsonPath("$.totalElements", is(1)));
+    }
+    updateStatus(token, id, "CANCELADO").andExpect(status().isOk());
+    mvc.perform(
+            get("/api/orders")
+                .header("Authorization", bearer(token))
+                .param("q", "#000" + id)
+                .param("status", "RECEBIDO"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements", is(0)))
+        .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(1)))
+        .andExpect(jsonPath("$.statusCounts.CANCELADO", is(1)));
+    mvc.perform(
+            get("/api/orders")
+                .header("Authorization", bearer(token))
+                .param("q", Long.toString(id))
+                .param("status", "RECEBIDO"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id", is((int) nameMatch)))
+        .andExpect(jsonPath("$.totalElements", is(1)));
+  }
+
+  @Test
+  void emptySearchKeepsListingAndSearchNeverLeaksOtherOwnersOrders() throws Exception {
+    String token = registerAndGetToken("search-owner");
+    String other = registerAndGetToken("search-other");
+    long ownId = createOrder(token);
+    long otherId = createOrder(other);
+    for (String query : new String[] {"", "   ", "aNa", "#" + ownId}) {
+      mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", query))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content[0].id", is((int) ownId)))
+          .andExpect(jsonPath("$.totalElements", is(1)))
+          .andExpect(jsonPath("$.statusCounts.RECEBIDO", is(1)));
+    }
+    mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", "#" + otherId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements", is(0)));
+  }
+
+  @Test
+  void treatsLikeMetacharactersLiterallyAndHandlesOversizedNumericIds() throws Exception {
+    String token = registerAndGetToken("search-literal");
+    createOrder(token, "Loja 100%_!");
+    createOrder(token, "Loja 100XYZ");
+    for (String query : new String[] {"%", "_", "!", "100%_!"}) {
+      mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", query))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.totalElements", is(1)));
+    }
+    String largeNumber = "9".repeat(100);
+    createOrder(token, largeNumber);
+    mvc.perform(get("/api/orders").header("Authorization", bearer(token)).param("q", largeNumber))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements", is(1)));
+    mvc.perform(
+            get("/api/orders").header("Authorization", bearer(token)).param("q", "a".repeat(101)))
+        .andExpect(status().isBadRequest())
+        .andExpect(status().reason("Busca deve ter no máximo 100 caracteres"));
+  }
+
   private String registerAndGetToken(String prefix) throws Exception {
     String email = prefix + "-" + UUID.randomUUID() + "@foody.test";
     MvcResult result =
@@ -210,13 +327,24 @@ class OrderControllerIntegrationTest {
   }
 
   private long createOrder(String token) throws Exception {
+    return createOrder(token, "Ana");
+  }
+
+  private long createOrder(String token, String customer) throws Exception {
     MvcResult result =
         mvc.perform(
                 post("/api/orders")
                     .header("Authorization", bearer(token))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
-                        "{\"customer\":\"Ana\",\"items\":\"Pizza\",\"deliveryAddress\":\"Rua A\"}"))
+                        objectMapper.writeValueAsString(
+                            java.util.Map.of(
+                                "customer",
+                                customer,
+                                "items",
+                                "Pizza",
+                                "deliveryAddress",
+                                "Rua A"))))
             .andExpect(status().isCreated())
             .andReturn();
     return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();

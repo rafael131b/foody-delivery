@@ -106,7 +106,7 @@ Request:
 
 ### `GET /orders`
 
-Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` decrescente. Aceita `page` (padrão `0`), `size` (padrão `10`, entre `1` e `100`) e `status` opcional. Resposta `200 OK`:
+Lista pedidos acessíveis ao usuário autenticado, ordenados por `createdAt` decrescente. Aceita `page` (padrão `0`), `size` (padrão `10`, entre `1` e `100`) e `status` opcional. Aceita também `q` opcional (até 100 caracteres; acima disso, `400`): busca o nome do cliente por trecho, sem diferenciar maiúsculas, ou o número do pedido quando `q` é numérico (aceita `#` e zeros à esquerda, ex. `#0012`). `q` combina com `status`; `totalElements` e `totalPages` refletem a busca, e `statusCounts` continua com o total de cada status do usuário. Resposta `200 OK`:
 
 ```json
 {
@@ -175,7 +175,7 @@ Códigos esperados:
 
 ## CORS e segurança do contrato
 
-O Compose usa proxy Nginx para `/api` na mesma origem. A aplicação não define allowlist CORS; configure uma antes de servir frontend e backend em origens diferentes. Não incluir senha, hash ou segredo nas respostas e não colocar JWT em URL, query string ou logs.
+No desenvolvimento, o proxy do Vite encaminha `/api` para a API local. No deploy, um proxy reverso pode servir `frontend/dist` e encaminhar `/api`, mantendo a mesma origem. A aplicação não define allowlist CORS; configure uma antes de servir frontend e backend em origens diferentes. Não incluir senha, hash ou segredo nas respostas e não colocar JWT em URL, query string ou logs.
 
 ## Critérios de aceite da API
 
