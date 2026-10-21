@@ -20,13 +20,14 @@ Aplicação web para cadastro e autenticação de usuários e acompanhamento de 
 
 O enunciado exige autenticação, API Java/Spring Boot, persistência SQLite ou similar, frontend React e histórico Git. Consulte a [matriz de requisitos](docs/REQUIREMENTS.md) para localizar cada implementação e suas evidências.
 
-- Cadastro e login com e-mail e senha; o cadastro também autentica e devolve um JWT.
+- Cadastro e login com e-mail e senha, com botão para mostrar ou ocultar a senha digitada; o cadastro também autentica e devolve um JWT.
 - Senhas armazenadas com hash BCrypt; senha e hash nunca são retornados pela API.
 - Criação de pedidos com cliente, endereço, complemento opcional e itens em texto livre.
 - Listagem paginada, filtro por status, contagem por etapa e consulta por ID.
+- Barra de pesquisa acima da lista para buscar pedidos por número (`12`, `#0012`) ou nome do cliente, combinada com o filtro de status.
 - Atualização de status respeitando as transições de negócio.
 - Isolamento por usuário: cada conta só lista, consulta e altera seus próprios pedidos.
-- Interface responsiva com identidade visual Foody Delivery e documentação interativa Swagger.
+- Interface responsiva (de 360 a 1440 px) com identidade visual Foody Delivery, animações suaves que respeitam a preferência de movimento reduzido e documentação interativa Swagger.
 
 Não fazem parte deste mini rastreador catálogo de produtos/restaurantes, preços, pagamentos, cálculo de frete, notificações, múltiplos perfis ou atualização em tempo real. Os itens do pedido são texto livre, normalmente um por linha.
 
@@ -194,7 +195,7 @@ Exemplo de pedido (enviar o token no cabeçalho `Authorization`):
 
 O servidor define ID, data de criação, responsável e status inicial. Limites: nome 120 caracteres, e-mail 254, senha no mínimo 8, cliente 120, endereço 500, complemento opcional 200 e itens 2000.
 
-`GET /api/orders` aceita `page` (inicia em zero, padrão 0), `size` (padrão 10, de 1 a 100) `status` opcional e `q` opcional (até 100 caracteres) para buscar por nome do cliente (parcial, sem diferenciar maiúsculas) ou por número do pedido (`12`, `#12` ou `#0012`). Exemplo: `GET /api/orders?page=0&size=10&status=EM_PREPARO&q=maria`. A resposta inclui `content`, dados da página (`page`, `size`, `totalElements`, `totalPages`, `first`, `last`) e `statusCounts` para todos os status do usuário, mesmo com filtro ou busca aplicados.
+`GET /api/orders` aceita `page` (inicia em zero, padrão 0), `size` (padrão 10, de 1 a 100), `status` opcional e `q` opcional (até 100 caracteres) para buscar por nome do cliente (parcial, sem diferenciar maiúsculas) ou por número do pedido (`12`, `#12` ou `#0012`). Exemplo: `GET /api/orders?page=0&size=10&status=EM_PREPARO&q=maria`. A resposta inclui `content`, dados da página (`page`, `size`, `totalElements`, `totalPages`, `first`, `last`) e `statusCounts` para todos os status do usuário, mesmo com filtro ou busca aplicados.
 
 Transições disponíveis:
 
