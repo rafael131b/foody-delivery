@@ -52,9 +52,10 @@ async function request(path, options = {}, token) {
 export const api = {
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   register: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  orders: ({ page = 0, size = 10, status } = {}, token) => {
+  orders: ({ page = 0, size = 10, status, q } = {}, token) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) })
     if (status && status !== 'TODOS') params.set('status', status)
+    if (q?.trim()) params.set('q', q.trim())
     return request(`/orders?${params.toString()}`, {}, token)
   },
   createOrder: (data, token) =>
